@@ -217,7 +217,7 @@ public final class SupabaseClient: Sendable {
     }
 
     /// Constructs the OAuth authorization URL for the specified provider (e.g. "google").
-    public func makeOAuthURL(provider: String, redirectTo: String = "clicksplit://auth-callback") -> URL? {
+    public func makeOAuthURL(provider: String, redirectTo: String = "click://login") -> URL? {
         guard var components = URLComponents(url: supabaseURL.appendingPathComponent("auth/v1/authorize"), resolvingAgainstBaseURL: false) else {
             return nil
         }
@@ -228,6 +228,30 @@ public final class SupabaseClient: Sendable {
         ]
         return components.url
     }
+
+    /// Exchanges an OAuth PKCE / authorization code for user session tokens.
+    public func exchangeCodeForSession(code: String) async throws -> AuthResponse {
+        let endpoint = supabaseURL.appendingPathComponent("auth/v1/token")
+        var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "grant_type", value: "authorization_code")]
+        guard let url = components?.url else { throw SupabaseError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        for (key, value) in makeHeaders(authToken: nil) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        let body = ["auth_code": code, "code": code]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(AuthResponse.self, from: data)
+    }
+
 
     // ────────────────── Response Validator ──────────────────
 

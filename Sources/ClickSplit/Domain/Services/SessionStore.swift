@@ -101,9 +101,10 @@ public final class SessionStore: @unchecked Sendable {
     @MainActor
     public func signInWithGoogle(
         client: SupabaseClient = SupabaseClient(),
-        callbackScheme: String = "clicksplit"
+        callbackScheme: String = "click",
+        redirectTo: String = "click://login"
     ) async {
-        guard let oauthURL = client.makeOAuthURL(provider: "google", redirectTo: "\(callbackScheme)://auth-callback") else {
+        guard let oauthURL = client.makeOAuthURL(provider: "google", redirectTo: redirectTo) else {
             self.state = .error("Failed to construct Google OAuth URL.")
             return
         }
@@ -132,8 +133,7 @@ public final class SessionStore: @unchecked Sendable {
                 }
             }
 
-            // Extract tokens from the callback URL:
-            // Callback format: clicksplit://auth-callback#access_token=...&refresh_token=...
+            // Extract tokens from the callback URL (supports implicit fragment, query, or PKCE code):
             var tokenString: String?
 
             if let fragment = callbackURL.fragment {
@@ -150,6 +150,13 @@ public final class SessionStore: @unchecked Sendable {
             if tokenString == nil, let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
                let items = components.queryItems {
                 tokenString = items.first(where: { $0.name == "access_token" })?.value
+            }
+
+            // If an authorization code is returned, exchange it for tokens
+            if tokenString == nil, let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+               let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+                let authResponse = try await client.exchangeCodeForSession(code: code)
+                tokenString = authResponse.access_token
             }
 
             guard let accessToken = tokenString, !accessToken.isEmpty else {

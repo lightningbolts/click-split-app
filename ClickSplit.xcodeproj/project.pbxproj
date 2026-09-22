@@ -61,6 +61,7 @@
 		DCB97E6C41D320207A9F71DD /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7471A0DB2A08D89B3757115A /* SessionStore.swift */; };
 		DFF47A0F53B874F6CCE770CE /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE03450D6BADD89EE74FD3DC /* SupabaseConfig.swift */; };
 		E80962CA1E887F02E4F31FF8 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB3DB430C963DD912726839 /* SupabaseClient.swift */; };
+		F533CA6C89E3EC23BE9CDF00 /* ClickBrandLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFDAAFC2977D7C7E892072DF /* ClickBrandLogo.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -130,6 +131,7 @@
 		F9C9680A68BD436889DDF2CC /* SupabaseExpenseRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseExpenseRepository.swift; sourceTree = "<group>"; };
 		F9E5EAF1893C0F5A69FC4782 /* GroupSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSettingsSheet.swift; sourceTree = "<group>"; };
 		FD647D9A139A003065B99991 /* GroupJoinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupJoinView.swift; sourceTree = "<group>"; };
+		FFDAAFC2977D7C7E892072DF /* ClickBrandLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickBrandLogo.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -240,6 +242,7 @@
 		52A0B52665CF37FF45253AD4 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				FFDAAFC2977D7C7E892072DF /* ClickBrandLogo.swift */,
 				B0C58C0C3BECA4669B17FC7C /* LiquidGlassNavBar.swift */,
 				DF5EAB6A500803BAE1BE834D /* SplitAmount.swift */,
 				26AF8DD8C510621DA88039DB /* SplitBalanceBadge.swift */,
@@ -503,6 +506,7 @@
 				C9154E6C249FE6A34C7CA38F /* AppEnvironment.swift in Sources */,
 				1F79D2BAA420FF9405DD627C /* AppRouter.swift in Sources */,
 				8B52E495199AF4639EA56C81 /* CSVExporter.swift in Sources */,
+				F533CA6C89E3EC23BE9CDF00 /* ClickBrandLogo.swift in Sources */,
 				58480F26342068E5CFDED629 /* ClickSplitApp.swift in Sources */,
 				B81C7920F8557224D5B99860 /* ClickSplitRootView.swift in Sources */,
 				06EB3E05B2D29FF73C848BDF /* CreateGroupSheet.swift in Sources */,
@@ -582,7 +586,8 @@
 				CODE_SIGN_IDENTITY = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Click Split";
-				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLSchemes\": [\"clicksplit\"], \"CFBundleURLName\": \"com.clickplatforms.split\"]]";
+				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLSchemes\": [\"clicksplit\", \"click\"], \"CFBundleURLName\": \"com.clickplatforms.split\"]]";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Click Split needs camera access to scan physical receipts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Click Split needs photo library access to upload receipts.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -609,7 +614,8 @@
 				CODE_SIGN_IDENTITY = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Click Split";
-				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLSchemes\": [\"clicksplit\"], \"CFBundleURLName\": \"com.clickplatforms.split\"]]";
+				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLSchemes\": [\"clicksplit\", \"click\"], \"CFBundleURLName\": \"com.clickplatforms.split\"]]";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Click Split needs camera access to scan physical receipts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Click Split needs photo library access to upload receipts.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

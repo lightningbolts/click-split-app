@@ -40,24 +40,8 @@ public struct AuthenticationView: View {
         VStack(spacing: SplitSpacing.xl) {
             Spacer()
 
-            // Brand Logo Box
-            ZStack {
-                RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                    .fill(SplitColors.green)
-                    .frame(width: 80, height: 80)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                            .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
-                    )
-                    .background(
-                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                            .fill(SplitColors.ink)
-                            .offset(x: SplitSpacing.shadowOffset, y: SplitSpacing.shadowOffset)
-                    )
-
-                Text("⚡️")
-                    .font(.system(size: 44))
-            }
+            // Official Click Split Website Brand Mark
+            ClickBrandLogo(size: 64, style: .authMark)
 
             VStack(spacing: SplitSpacing.xs) {
                 Text("Click Split")
