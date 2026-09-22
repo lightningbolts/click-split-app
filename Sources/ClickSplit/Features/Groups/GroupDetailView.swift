@@ -149,7 +149,10 @@ public struct GroupDetailView: View {
                                         shares: viewModel.memberShares[expense.id] ?? []
                                     )
                                 }
-                                .buttonStyle(SplitPressableButtonStyle())
+                                // ExpenseRowView already provides the card surface and border.
+                                // Avoid wrapping it in SplitPressableButtonStyle, which adds a second
+                                // green bordered button shell around every expense.
+                                .buttonStyle(.plain)
                             }
                         }
                     }
