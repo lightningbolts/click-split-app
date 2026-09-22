@@ -21,7 +21,24 @@ public final class AppEnvironment: @unchecked Sendable {
         self.settlementRepository = settlementRepository
     }
 
-    /// Development and SwiftUI preview environment.
+    /// Production environment connecting to live Supabase backend.
+    public static func live(
+        sessionStore: SessionStore = SessionStore(),
+        client: SupabaseClient = SupabaseClient()
+    ) -> AppEnvironment {
+        let groupRepo = SupabaseGroupRepository(client: client, sessionStore: sessionStore)
+        let expenseRepo = SupabaseExpenseRepository(client: client, sessionStore: sessionStore)
+        let settlementRepo = SupabaseSettlementRepository(client: client, sessionStore: sessionStore)
+
+        return AppEnvironment(
+            sessionStore: sessionStore,
+            groupRepository: groupRepo,
+            expenseRepository: expenseRepo,
+            settlementRepository: settlementRepo
+        )
+    }
+
+    /// Development and SwiftUI preview environment with mock repositories.
     public static func preview() -> AppEnvironment {
         let store = SessionStore.preview()
         return AppEnvironment(
