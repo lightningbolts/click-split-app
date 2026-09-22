@@ -7,10 +7,43 @@ public protocol GroupRepositoryProtocol: Sendable {
     func fetchGroupMembers(groupId: UUID) async throws -> [SplitGroupMember]
     func createGroup(name: String, icon: String?, createdBy: UUID) async throws -> SplitGroup
     func joinGroup(groupId: UUID, userId: UUID) async throws
+    func addGroupMember(groupId: UUID, email: String) async throws
+    func removeGroupMember(groupId: UUID, userId: UUID) async throws
     func leaveGroup(groupId: UUID, userId: UUID) async throws
     func deleteGroup(groupId: UUID) async throws
     func fetchGroupBalance(groupId: UUID, userId: UUID) async throws -> Decimal
 }
+
+
+public enum GroupMemberManagementError: LocalizedError, Sendable {
+    case invalidEmail
+    case notCreator
+    case userNotFound
+    case alreadyMember
+    case memberNotFound
+    case creatorCannotBeRemoved
+    case unsettledBalance
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidEmail:
+            return "Enter a valid email address."
+        case .notCreator:
+            return "Only the group creator can manage members."
+        case .userNotFound:
+            return "No Click account was found with that email."
+        case .alreadyMember:
+            return "That user is already in this group."
+        case .memberNotFound:
+            return "That user is not a member of this group."
+        case .creatorCannotBeRemoved:
+            return "The group creator cannot remove themselves. Delete the group instead."
+        case .unsettledBalance:
+            return "This member has an outstanding balance. Settle up before removing them."
+        }
+    }
+}
+
 
 /// Repository protocol for Expense queries and mutations.
 public protocol ExpenseRepositoryProtocol: Sendable {
