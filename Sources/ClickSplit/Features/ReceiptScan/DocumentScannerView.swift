@@ -9,11 +9,11 @@ import UIKit
 #if canImport(VisionKit) && canImport(UIKit)
 /// Native document camera scanner wrapper using Apple's VisionKit VNDocumentCameraViewController.
 public struct VNDocumentScannerView: UIViewControllerRepresentable {
-    public var onScanCompleted: (UIImage) -> Void
+    public var onScanCompleted: ([UIImage]) -> Void
     public var onCancel: () -> Void
 
     public init(
-        onScanCompleted: @escaping (UIImage) -> Void,
+        onScanCompleted: @escaping ([UIImage]) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.onScanCompleted = onScanCompleted
@@ -42,12 +42,14 @@ public struct VNDocumentScannerView: UIViewControllerRepresentable {
 
         @MainActor
         public func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
-            if scan.pageCount > 0 {
-                let image = scan.imageOfPage(at: 0)
-                parent.onScanCompleted(image)
-            } else {
+            guard scan.pageCount > 0 else {
                 parent.onCancel()
+                return
             }
+
+            let pageCount = min(scan.pageCount, 10)
+            let images = (0..<pageCount).map { scan.imageOfPage(at: $0) }
+            parent.onScanCompleted(images)
         }
 
         @MainActor

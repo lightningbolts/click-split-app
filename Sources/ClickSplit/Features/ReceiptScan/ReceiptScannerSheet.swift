@@ -12,8 +12,9 @@ public struct ReceiptScannerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnvironment) private var environment
 
-    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isProcessing = false
+    @State private var processingImageCount = 0
     @State private var recognizedItems: [ExpenseItemDraft]?
     @State private var recognizedMerchant: String?
     @State private var recognizedTax: Decimal = 0
@@ -57,7 +58,7 @@ public struct ReceiptScannerSheet: View {
                                 .scaleEffect(1.4)
                                 .tint(SplitColors.white)
 
-                            Text("Analyzing Receipt...")
+                            Text(processingImageCount > 1 ? "Analyzing \(processingImageCount) Receipt Photos..." : "Analyzing Receipt...")
                                 .font(SplitTypography.button)
                                 .foregroundColor(SplitColors.white)
                         }
@@ -84,9 +85,9 @@ public struct ReceiptScannerSheet: View {
             #if canImport(VisionKit) && canImport(UIKit)
             .fullScreenCover(isPresented: $showCamera) {
                 VNDocumentScannerView(
-                    onScanCompleted: { scannedImage in
+                    onScanCompleted: { scannedImages in
                         showCamera = false
-                        processImage(scannedImage)
+                        processImages(scannedImages)
                     },
                     onCancel: {
                         showCamera = false
@@ -126,7 +127,7 @@ public struct ReceiptScannerSheet: View {
                     .font(SplitTypography.amountLarge)
                     .foregroundColor(SplitColors.ink)
 
-                Text("Position the receipt in frame or choose an existing photo. Line items and prices are recognized automatically.")
+                Text("Capture or choose up to 10 photos for long receipts. Keep the pages in top-to-bottom order and include a little overlap between photos.")
                     .font(SplitTypography.body)
                     .foregroundColor(SplitColors.inkSoft)
                     .multilineTextAlignment(.center)
@@ -154,13 +155,15 @@ public struct ReceiptScannerSheet: View {
 
                 // Photos Picker for Simulator and Library Upload
                 PhotosPicker(
-                    selection: $selectedPhotoItem,
+                    selection: $selectedPhotoItems,
+                    maxSelectionCount: 10,
+                    selectionBehavior: .ordered,
                     matching: .images,
                     photoLibrary: .shared()
                 ) {
                     HStack(spacing: SplitSpacing.sm) {
                         Image(systemName: "photo.on.rectangle")
-                        Text("Choose from Photo Library")
+                        Text("Choose Up to 10 Photos")
                     }
                     .font(SplitTypography.button)
                     .frame(maxWidth: .infinity)
@@ -173,16 +176,20 @@ public struct ReceiptScannerSheet: View {
                         shadowOffset: SplitSpacing.shadowOffsetSmall
                     )
                 )
-                .onChange(of: selectedPhotoItem) { _, newItem in
-                    guard let newItem else { return }
+                .onChange(of: selectedPhotoItems) { _, newItems in
+                    guard !newItems.isEmpty else { return }
                     Task {
-                        if let data = try? await newItem.loadTransferable(type: Data.self) {
-                            #if canImport(UIKit)
-                            if let img = UIImage(data: data) {
-                                processImage(img)
+                        #if canImport(UIKit)
+                        var images: [UIImage] = []
+                        for item in newItems.prefix(10) {
+                            if let data = try? await item.loadTransferable(type: Data.self),
+                               let image = UIImage(data: data) {
+                                images.append(image)
                             }
-                            #endif
                         }
+                        selectedPhotoItems = []
+                        processImages(images)
+                        #endif
                     }
                 }
 
@@ -206,19 +213,39 @@ public struct ReceiptScannerSheet: View {
     }
 
     #if canImport(UIKit)
-    private func processImage(_ image: UIImage) {
-        guard let compressedData = ReceiptScanService.compressImage(image) else { return }
+    private func processImages(_ images: [UIImage]) {
+        let limitedImages = Array(images.prefix(10))
+        let isMultiPage = limitedImages.count > 1
+        let compressedImages = limitedImages.compactMap {
+            ReceiptScanService.compressImage(
+                $0,
+                maxDimension: isMultiPage ? 1800 : 2400,
+                compressionQuality: isMultiPage ? 0.72 : 0.85
+            )
+        }
+
+        guard !compressedImages.isEmpty else {
+            errorMessage = "Could not read the selected receipt photos."
+            SplitHaptics.notify(.error)
+            return
+        }
+
         isProcessing = true
+        processingImageCount = compressedImages.count
         errorMessage = nil
 
         Task {
             do {
                 let token = environment.sessionStore.authToken
-                let result = try await scanService.extractReceipt(imageData: compressedData, authToken: token)
+                let result = try await scanService.extractReceipt(
+                    imageDatas: compressedImages,
+                    authToken: token
+                )
                 let drafts = result.items.map {
                     ExpenseItemDraft(label: $0.label, price: $0.price, assignedTo: nil)
                 }
                 isProcessing = false
+                processingImageCount = 0
                 SplitHaptics.notify(.success)
                 self.recognizedMerchant = result.merchant
                 self.recognizedItems = drafts
@@ -226,6 +253,7 @@ public struct ReceiptScannerSheet: View {
                 self.recognizedTip = result.tip ?? 0
             } catch {
                 isProcessing = false
+                processingImageCount = 0
                 self.errorMessage = error.localizedDescription
                 SplitHaptics.notify(.error)
             }
