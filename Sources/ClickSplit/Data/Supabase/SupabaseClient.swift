@@ -234,6 +234,28 @@ public final class SupabaseClient: Sendable {
         return try JSONDecoder().decode(AuthResponse.self, from: data)
     }
 
+    /// Exchanges a persisted refresh token for a fresh Supabase session.
+    public func refreshSession(refreshToken: String) async throws -> AuthResponse {
+        let endpoint = supabaseURL.appendingPathComponent("auth/v1/token")
+        var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "grant_type", value: "refresh_token")]
+        guard let url = components?.url else { throw SupabaseError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        for (key, value) in makeHeaders(authToken: nil) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.httpBody = try JSONEncoder().encode(["refresh_token": refreshToken])
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(AuthResponse.self, from: data)
+    }
+
     /// Fetches the authenticated user profile from Supabase Auth.
     public func getUser(authToken: String) async throws -> AuthUser {
         let endpoint = supabaseURL.appendingPathComponent("auth/v1/user")

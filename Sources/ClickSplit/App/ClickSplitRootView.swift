@@ -16,6 +16,12 @@ public struct ClickSplitRootView: View {
             switch environment.sessionStore.state {
             case .authenticated:
                 DashboardView()
+            case .restoring:
+                ZStack {
+                    SplitColors.paper.ignoresSafeArea()
+                    ProgressView()
+                        .tint(SplitColors.ink)
+                }
             case .unauthenticated, .authenticating, .error:
                 AuthenticationView()
             }

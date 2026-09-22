@@ -5,6 +5,7 @@ import Security
 public enum KeychainHelper {
     private static let service = "com.clickplatforms.split"
     private static let tokenAccount = "authToken"
+    private static let refreshTokenAccount = "refreshToken"
     private static let userAccount = "activeUserId"
 
     public static func saveToken(_ token: String) {
@@ -14,6 +15,16 @@ public enum KeychainHelper {
 
     public static func loadToken() -> String? {
         guard let data = load(key: tokenAccount) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    public static func saveRefreshToken(_ token: String) {
+        guard let data = token.data(using: .utf8) else { return }
+        save(key: refreshTokenAccount, data: data)
+    }
+
+    public static func loadRefreshToken() -> String? {
+        guard let data = load(key: refreshTokenAccount) else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
@@ -30,6 +41,7 @@ public enum KeychainHelper {
 
     public static func clear() {
         delete(key: tokenAccount)
+        delete(key: refreshTokenAccount)
         delete(key: userAccount)
     }
 
