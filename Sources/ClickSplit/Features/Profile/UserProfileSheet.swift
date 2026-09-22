@@ -104,6 +104,60 @@ public struct UserProfileSheet: View {
                     .splitCardStyle(surfaceColor: SplitColors.paperDim)
                 }
 
+                // Legal & Support Card
+                VStack(alignment: .leading, spacing: SplitSpacing.sm) {
+                    Text("LEGAL & SUPPORT")
+                        .font(SplitTypography.badge)
+                        .foregroundColor(SplitColors.inkSoft)
+                        .tracking(1)
+
+                    VStack(spacing: SplitSpacing.xs) {
+                        Link(destination: URL(string: "https://split.joinclick.co/privacy")!) {
+                            HStack {
+                                Text("Privacy Policy")
+                                    .font(SplitTypography.caption)
+                                    .foregroundColor(SplitColors.ink)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(SplitColors.grey)
+                            }
+                        }
+
+                        Divider()
+                            .background(SplitColors.grey.opacity(0.3))
+
+                        Link(destination: URL(string: "https://split.joinclick.co/terms")!) {
+                            HStack {
+                                Text("Terms of Service")
+                                    .font(SplitTypography.caption)
+                                    .foregroundColor(SplitColors.ink)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(SplitColors.grey)
+                            }
+                        }
+
+                        Divider()
+                            .background(SplitColors.grey.opacity(0.3))
+
+                        Link(destination: URL(string: "https://split.joinclick.co/support")!) {
+                            HStack {
+                                Text("Support & FAQ")
+                                    .font(SplitTypography.caption)
+                                    .foregroundColor(SplitColors.ink)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(SplitColors.grey)
+                            }
+                        }
+                    }
+                    .padding(SplitSpacing.md)
+                    .splitCardStyle(surfaceColor: SplitColors.paperDim)
+                }
+
                 Spacer()
 
                 // Sign Out Button
