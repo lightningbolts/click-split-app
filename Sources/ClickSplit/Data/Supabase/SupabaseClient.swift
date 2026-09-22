@@ -114,6 +114,41 @@ public final class SupabaseClient: Sendable {
         return try decoder.decode([R].self, from: data)
     }
 
+    /// Updates records matching the given query filters and returns the updated rows.
+    public func update<T: Encodable, R: Decodable>(
+        table: String,
+        value: T,
+        filters: [URLQueryItem],
+        authToken: String? = nil
+    ) async throws -> [R] {
+        guard var components = URLComponents(url: supabaseURL.appendingPathComponent("rest/v1/\(table)"), resolvingAgainstBaseURL: false) else {
+            throw SupabaseError.invalidURL
+        }
+        components.queryItems = filters
+
+        guard let requestURL = components.url else {
+            throw SupabaseError.invalidURL
+        }
+
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "PATCH"
+        for (key, value) in makeHeaders(authToken: authToken) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        request.httpBody = try encoder.encode(value)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode([R].self, from: data)
+    }
+
     /// Deletes records matching the given query filters.
     public func delete(
         table: String,
