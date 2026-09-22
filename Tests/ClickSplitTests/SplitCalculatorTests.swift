@@ -70,6 +70,25 @@ final class SplitCalculatorTests: XCTestCase {
         XCTAssertEqual(shares[u2], Decimal(23))
     }
 
+    func testByItemSplitReconcilesTaxAndTipToExpenseTotal() throws {
+        let u1 = UUID()
+        let u2 = UUID()
+        let expenseId = UUID()
+
+        let item1 = SplitExpenseItem(expenseId: expenseId, label: "Entree", price: 10, assignedTo: u1)
+        let item2 = SplitExpenseItem(expenseId: expenseId, label: "Drink", price: 10, assignedTo: u2)
+
+        let shares = try SplitCalculator.calculateByItemSplit(
+            items: [item1, item2],
+            allParticipantUserIds: [u1, u2],
+            total: Decimal(string: "24.00")!
+        )
+
+        XCTAssertEqual(shares[u1], Decimal(string: "12.00")!)
+        XCTAssertEqual(shares[u2], Decimal(string: "12.00")!)
+        XCTAssertEqual(shares.values.reduce(Decimal.zero, +), Decimal(string: "24.00")!)
+    }
+
     func testNetBalanceComputation() {
         let currentUserId = UUID()
         let otherUserId = UUID()
