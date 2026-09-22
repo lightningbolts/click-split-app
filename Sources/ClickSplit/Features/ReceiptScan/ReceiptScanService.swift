@@ -19,15 +19,18 @@ public struct ReceiptExtractionResult: Codable, Sendable {
         }
     }
 
+    public let merchant: String?
     public let items: [ScannedItem]
     public let detectedTotal: Decimal?
 
     enum CodingKeys: String, CodingKey {
+        case merchant
         case items
         case detectedTotal = "detected_total"
     }
 
-    public init(items: [ScannedItem], detectedTotal: Decimal?) {
+    public init(merchant: String? = nil, items: [ScannedItem], detectedTotal: Decimal?) {
+        self.merchant = merchant
         self.items = items
         self.detectedTotal = detectedTotal
     }
@@ -47,8 +50,8 @@ public final class ReceiptScanService: Sendable {
     }
 
     #if canImport(UIKit)
-    /// Compresses a captured receipt image to optimal dimensions and JPEG quality.
-    public static func compressImage(_ image: UIImage, maxDimension: CGFloat = 1200) -> Data? {
+    /// Compresses a captured receipt image to optimal high-fidelity dimensions and quality for OCR.
+    public static func compressImage(_ image: UIImage, maxDimension: CGFloat = 2400) -> Data? {
         let size = image.size
         var targetSize = size
 
@@ -57,15 +60,22 @@ public final class ReceiptScanService: Sendable {
             targetSize = CGSize(width: size.width * scale, height: size.height * scale)
         }
 
+        // Ensure vertical receipts maintain sufficient width for fine print OCR
+        let minLegibleWidth: CGFloat = 1000
+        if targetSize.width < minLegibleWidth && size.width >= minLegibleWidth {
+            let scale = minLegibleWidth / size.width
+            targetSize = CGSize(width: minLegibleWidth, height: size.height * scale)
+        }
+
         let renderer = UIGraphicsImageRenderer(size: targetSize)
         let resized = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
 
-        return resized.jpegData(compressionQuality: 0.7)
+        return resized.jpegData(compressionQuality: 0.85)
     }
 
-    /// Performs fast local on-device Vision OCR to extract raw text lines.
+    /// Performs fast local on-device Vision OCR to extract raw text lines with layout-aware spatial sorting.
     public static func performLocalOCR(on imageData: Data) async throws -> [String] {
         guard let image = UIImage(data: imageData)?.cgImage else { return [] }
 
@@ -79,7 +89,19 @@ public final class ReceiptScanService: Sendable {
                     continuation.resume(returning: [])
                     return
                 }
-                let lines = observations.compactMap { $0.topCandidates(1).first?.string }
+
+                // In Vision normalized coordinates: origin.y = 0 is bottom, 1.0 is top
+                // Sort top-to-bottom (descending Y) and left-to-right (ascending X)
+                let sorted = observations.sorted { a, b in
+                    let aY = a.boundingBox.origin.y
+                    let bY = b.boundingBox.origin.y
+                    if abs(aY - bY) > 0.015 {
+                        return aY > bY
+                    }
+                    return a.boundingBox.origin.x < b.boundingBox.origin.x
+                }
+
+                let lines = sorted.compactMap { $0.topCandidates(1).first?.string }
                 continuation.resume(returning: lines)
             }
             request.recognitionLevel = .accurate
@@ -95,50 +117,81 @@ public final class ReceiptScanService: Sendable {
     }
     #endif
 
-    /// Sends the compressed receipt image to the backend extraction service, falling back to on-device Vision OCR parsing.
+    /// Two-stage receipt extraction:
+    /// Stage 1: Fast local on-device Apple Vision OCR (~150ms).
+    /// Stage 2: Send extracted text payload (~2KB) to Gemini 3.5 Flash Lite for sub-second formatting.
+    /// Stage 3 (Fallback): If text extraction is incomplete or ambiguous, upload full multimodal image.
+    /// Stage 4 (Offline): If network is offline, parse locally with regex heuristics.
     public func extractReceipt(
         imageData: Data,
         authToken: String?
     ) async throws -> ReceiptExtractionResult {
-        let base64String = imageData.base64EncodedString()
         let endpoint = serverBaseURL.appendingPathComponent("api/split/receipt-scan")
 
+        #if canImport(UIKit) && canImport(Vision)
+        // Stage 1: Perform fast on-device Apple Vision OCR
+        var localOcrLines: [String] = []
+        do {
+            localOcrLines = try await Self.performLocalOCR(on: imageData)
+        } catch {
+            print("Local Apple Vision OCR warning: \(error)")
+        }
+
+        // Stage 2: If we got OCR lines, send compact raw text to Gemini 3.5 Flash Lite for fast formatting
+        if !localOcrLines.isEmpty {
+            let joinedText = localOcrLines.joined(separator: "\n")
+            if let result = try? await sendExtractionRequest(
+                endpoint: endpoint,
+                payload: ["raw_text": joinedText],
+                authToken: authToken
+            ), result.items.count >= 2 {
+                return result
+            }
+        }
+        #endif
+
+        // Stage 3: Multimodal image fallback if text formatting returned < 2 items or failed
+        let base64String = imageData.base64EncodedString()
+        if let result = try? await sendExtractionRequest(
+            endpoint: endpoint,
+            payload: ["image": base64String],
+            authToken: authToken
+        ), !result.items.isEmpty {
+            return result
+        }
+
+        // Stage 4: Completely offline fallback using local regex parsing
+        #if canImport(UIKit) && canImport(Vision)
+        if !localOcrLines.isEmpty {
+            let parsedResult = Self.parseReceiptLines(localOcrLines)
+            if !parsedResult.items.isEmpty {
+                return parsedResult
+            }
+        }
+        #endif
+
+        throw ReceiptScanError.noItemsFound
+    }
+
+    private func sendExtractionRequest(
+        endpoint: URL,
+        payload: [String: String],
+        authToken: String?
+    ) async throws -> ReceiptExtractionResult {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = authToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
-        struct Payload: Encodable {
-            let image: String
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw ReceiptScanError.backendError("HTTP \((response as? HTTPURLResponse)?.statusCode ?? 500)")
         }
-
-        request.httpBody = try JSONEncoder().encode(Payload(image: base64String))
-
-        do {
-            let (data, response) = try await session.data(for: request)
-            if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) {
-                let decoder = JSONDecoder()
-                let result = try decoder.decode(ReceiptExtractionResult.self, from: data)
-                if !result.items.isEmpty {
-                    return result
-                }
-            }
-        } catch {
-            // Backend unavailable or failed; seamlessly fall through to on-device Vision OCR
-        }
-
-        #if canImport(UIKit) && canImport(Vision)
-        // Perform on-device Apple Vision OCR and intelligent line item parsing
-        let ocrLines = try await Self.performLocalOCR(on: imageData)
-        let parsedResult = Self.parseReceiptLines(ocrLines)
-        if !parsedResult.items.isEmpty {
-            return parsedResult
-        }
-        #endif
-
-        throw ReceiptScanError.noItemsFound
+        let decoder = JSONDecoder()
+        return try decoder.decode(ReceiptExtractionResult.self, from: data)
     }
 
     /// Intelligent on-device receipt parser extracting line items and prices from OCR text lines.

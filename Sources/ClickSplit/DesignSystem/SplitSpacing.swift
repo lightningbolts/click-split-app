@@ -26,17 +26,17 @@ public enum SplitSpacing {
     /// 32pt hero spacing
     public static let xxxl: CGFloat = 32
 
-    /// Border stroke thickness (2pt on standard, crisp retina rendering)
-    public static let borderWidth: CGFloat = 2.0
+    /// Border stroke thickness (1pt on standard, crisp retina rendering)
+    public static let borderWidth: CGFloat = 1.0
 
-    /// Default hard shadow offset
-    public static let shadowOffset: CGFloat = 4.0
+    /// Default subtle shadow offset
+    public static let shadowOffset: CGFloat = 2.0
 
     /// Compact shadow offset for smaller controls
-    public static let shadowOffsetSmall: CGFloat = 2.0
+    public static let shadowOffsetSmall: CGFloat = 1.0
 
-    /// Neo-brutalist corner radius (nearly square, subtle softening)
-    public static let cornerRadius: CGFloat = 4.0
+    /// Refined corner radius for modern surfaces
+    public static let cornerRadius: CGFloat = 8.0
 
     /// Hard corner radius for strict neo-brutalism
     public static let cornerRadiusZero: CGFloat = 0.0

@@ -51,13 +51,13 @@ public struct GroupCardView: View {
         VStack(spacing: SplitSpacing.md) {
             // Header: Icon + Title/Members + Net Balance
             HStack(spacing: 12) {
-                // Group Icon / Emoji Box (42x42 square, 1.5px ink border, paperDim background)
+                // Group Icon / Emoji Box (42x42 square, subtle border, paperDim background)
                 ZStack {
-                    RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(SplitColors.paperDim)
                         .overlay(
-                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                .stroke(SplitColors.ink, lineWidth: 1.5)
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(SplitColors.border, lineWidth: 1.0)
                         )
 
                     Text(group.icon ?? "👥")
@@ -102,23 +102,20 @@ public struct GroupCardView: View {
                 metricColumn(label: "TOTAL SPENT", value: formatMoney(totalSpend))
 
                 Rectangle()
-                    .fill(SplitColors.ink.opacity(0.2))
-                    .frame(width: 1, height: 22)
+                    .fill(SplitColors.border)
+                    .frame(width: 1, height: 20)
 
                 metricColumn(label: "EXPENSES", value: "\(expenseCount)")
 
                 Rectangle()
-                    .fill(SplitColors.ink.opacity(0.2))
-                    .frame(width: 1, height: 22)
+                    .fill(SplitColors.border)
+                    .frame(width: 1, height: 20)
 
                 metricColumn(label: "MEMBERS", value: "\(memberCount)")
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .background(SplitColors.paperDim)
-            .overlay(
-                RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                    .stroke(SplitColors.ink, lineWidth: 1.5)
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 6))
 
             // Recent Activity Micro-row
             HStack(spacing: 6) {
@@ -126,9 +123,10 @@ public struct GroupCardView: View {
                     Text("LATEST")
                         .font(.system(size: 9, weight: .heavy))
                         .foregroundColor(SplitColors.white)
-                        .padding(.horizontal, 4)
+                        .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(SplitColors.ink)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
 
                     Text(desc)
                         .font(.system(size: 11, weight: .bold))
@@ -146,14 +144,11 @@ public struct GroupCardView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(SplitColors.paper)
-            .overlay(
-                RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                    .stroke(Color(red: 226/255.0, green: 221/255.0, blue: 211/255.0), lineWidth: 1)
-            )
+            .background(SplitColors.paperDim)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
 
             // Quick Actions Footer
             HStack(spacing: SplitSpacing.sm) {
@@ -166,18 +161,10 @@ public struct GroupCardView: View {
                                 .font(.system(size: 12, weight: .bold))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
+                        .padding(.vertical, 8)
                         .background(SplitColors.green)
                         .foregroundColor(SplitColors.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                .stroke(SplitColors.ink, lineWidth: 1.5)
-                        )
-                        .background(
-                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                .fill(SplitColors.ink)
-                                .offset(x: 1.5, y: 1.5)
-                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                     .buttonStyle(.plain)
                 }
@@ -191,25 +178,21 @@ public struct GroupCardView: View {
                         .foregroundColor(SplitColors.ink)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
+                .padding(.vertical, 8)
                 .background(SplitColors.paperDim)
                 .overlay(
-                    RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                        .stroke(SplitColors.ink, lineWidth: 1.5)
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(SplitColors.border, lineWidth: 1)
                 )
-                .background(
-                    RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                        .fill(SplitColors.ink)
-                        .offset(x: 1.5, y: 1.5)
-                )
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
         .padding(14)
         .splitCardStyle(
             surfaceColor: SplitColors.white,
-            borderColor: SplitColors.ink,
-            borderWidth: SplitSpacing.borderWidth,
-            shadowOffset: SplitSpacing.shadowOffsetSmall
+            borderColor: SplitColors.border,
+            borderWidth: 1.0,
+            shadowOffset: 0
         )
     }
 

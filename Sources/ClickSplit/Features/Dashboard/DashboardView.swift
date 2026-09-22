@@ -43,8 +43,9 @@ public struct DashboardView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .splitCardStyle(
                             surfaceColor: SplitColors.paperDim,
-                            borderColor: SplitColors.ink,
-                            shadowOffset: SplitSpacing.shadowOffset
+                            borderColor: SplitColors.border,
+                            borderWidth: 1.0,
+                            shadowOffset: 0
                         )
 
                         if selectedTab == .groups {
@@ -140,7 +141,7 @@ public struct DashboardView: View {
                 groupPickerSheet
             }
             .sheet(isPresented: $showScannerSheet) {
-                ReceiptScannerSheet(members: scanMembers) { items, total in
+                ReceiptScannerSheet(members: scanMembers) { items, total, merchant in
                     Task {
                         await viewModel.loadData(environment: environment)
                     }

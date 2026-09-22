@@ -190,11 +190,13 @@ public struct AddExpenseView: View {
             .sheet(isPresented: $showReceiptScanner) {
                 ReceiptScannerSheet(
                     members: members,
-                    onItemsReady: { items, total in
+                    onItemsReady: { items, total, merchant in
                         scannedItems = items
                         amountString = "\(total)"
                         splitMethod = .byItem
-                        if descriptionText.isEmpty {
+                        if let merchant, !merchant.isEmpty {
+                            descriptionText = merchant
+                        } else if descriptionText.isEmpty {
                             descriptionText = "Scanned Receipt"
                         }
                     }

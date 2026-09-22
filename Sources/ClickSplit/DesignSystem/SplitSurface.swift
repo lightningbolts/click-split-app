@@ -70,12 +70,12 @@ public extension View {
         modifier(SplitShadowModifier(offset: offset, color: color, cornerRadius: cornerRadius))
     }
 
-    /// Convenience modifier combining surface, border, and hard shadow.
+    /// Convenience modifier combining surface, border, and subtle shadow.
     func splitCardStyle(
         surfaceColor: Color = SplitColors.paper,
-        borderColor: Color = SplitColors.ink,
+        borderColor: Color = SplitColors.border,
         borderWidth: CGFloat = SplitSpacing.borderWidth,
-        shadowOffset: CGFloat = SplitSpacing.shadowOffset,
+        shadowOffset: CGFloat = 0,
         shadowColor: Color = SplitColors.ink,
         cornerRadius: CGFloat = SplitSpacing.cornerRadius
     ) -> some View {

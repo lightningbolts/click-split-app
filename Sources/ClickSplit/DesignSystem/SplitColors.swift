@@ -75,6 +75,12 @@ public enum SplitColors {
         light: UIColor.white,
         dark: UIColor(red: 36 / 255.0, green: 36 / 255.0, blue: 38 / 255.0, alpha: 1.0)
     )
+
+    /// Subtle outline border color: soft neutral in light, subtle translucent ink in dark
+    public static let border = dynamicColor(
+        light: UIColor(red: 20 / 255.0, green: 20 / 255.0, blue: 20 / 255.0, alpha: 0.12),
+        dark: UIColor(red: 245 / 255.0, green: 245 / 255.0, blue: 240 / 255.0, alpha: 0.15)
+    )
     #else
     public static let paper = Color(red: 250 / 255.0, green: 248 / 255.0, blue: 243 / 255.0)
     public static let paperDim = Color(red: 241 / 255.0, green: 238 / 255.0, blue: 229 / 255.0)
@@ -86,5 +92,6 @@ public enum SplitColors {
     public static let red = Color(red: 214 / 255.0, green: 69 / 255.0, blue: 69 / 255.0)
     public static let redDim = Color(red: 251 / 255.0, green: 234 / 255.0, blue: 234 / 255.0)
     public static let white = Color.white
+    public static let border = Color(red: 20 / 255.0, green: 20 / 255.0, blue: 20 / 255.0).opacity(0.12)
     #endif
 }

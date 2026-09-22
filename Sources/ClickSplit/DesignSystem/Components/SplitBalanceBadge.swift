@@ -64,12 +64,7 @@ public struct SplitBalanceBadge: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
-        )
-        .background(
-            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                .fill(SplitColors.ink)
-                .offset(x: SplitSpacing.shadowOffsetSmall, y: SplitSpacing.shadowOffsetSmall)
+                .stroke(accentColor.opacity(0.22), lineWidth: 1.0)
         )
     }
 }

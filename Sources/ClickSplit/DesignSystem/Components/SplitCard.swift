@@ -11,7 +11,7 @@ public struct SplitCard<Content: View>: View {
 
     public init(
         surfaceColor: Color = SplitColors.paperDim,
-        borderColor: Color = SplitColors.ink,
+        borderColor: Color = SplitColors.border,
         shadowColor: Color = SplitColors.ink,
         padding: CGFloat = SplitSpacing.lg,
         cornerRadius: CGFloat = SplitSpacing.cornerRadius,

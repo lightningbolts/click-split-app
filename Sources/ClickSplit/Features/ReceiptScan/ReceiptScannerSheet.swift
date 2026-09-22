@@ -7,7 +7,7 @@ import VisionKit
 /// Main receipt scanning flow container handling camera / photo picking and extraction.
 public struct ReceiptScannerSheet: View {
     public var members: [SplitGroupMember]
-    public var onItemsReady: ([ExpenseItemDraft], Decimal) -> Void
+    public var onItemsReady: ([ExpenseItemDraft], Decimal, String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnvironment) private var environment
@@ -15,6 +15,7 @@ public struct ReceiptScannerSheet: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isProcessing = false
     @State private var recognizedItems: [ExpenseItemDraft]?
+    @State private var recognizedMerchant: String?
     @State private var errorMessage: String?
     @State private var showCamera = false
 
@@ -22,7 +23,7 @@ public struct ReceiptScannerSheet: View {
 
     public init(
         members: [SplitGroupMember],
-        onItemsReady: @escaping ([ExpenseItemDraft], Decimal) -> Void
+        onItemsReady: @escaping ([ExpenseItemDraft], Decimal, String?) -> Void
     ) {
         self.members = members
         self.onItemsReady = onItemsReady
@@ -36,7 +37,7 @@ public struct ReceiptScannerSheet: View {
                         members: members,
                         initialItems: items,
                         onApply: { configuredItems, total in
-                            onItemsReady(configuredItems, total)
+                            onItemsReady(configuredItems, total, recognizedMerchant)
                             dismiss()
                         }
                     )
@@ -215,6 +216,7 @@ public struct ReceiptScannerSheet: View {
                 }
                 isProcessing = false
                 SplitHaptics.notify(.success)
+                self.recognizedMerchant = result.merchant
                 self.recognizedItems = drafts
             } catch {
                 isProcessing = false
@@ -227,6 +229,7 @@ public struct ReceiptScannerSheet: View {
 
     private func simulateDemoReceipt() {
         let mockResult = ReceiptScanService.mockExtractionFallback()
+        self.recognizedMerchant = "Sample Burger Joint"
         self.recognizedItems = mockResult.items.map {
             ExpenseItemDraft(label: $0.label, price: $0.price, assignedTo: nil)
         }
