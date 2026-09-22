@@ -9,6 +9,7 @@ public struct GroupDetailView: View {
     @State private var showAddExpenseSheet = false
     @State private var showSettleUpSheet = false
     @State private var showSettingsSheet = false
+    @State private var selectedExpense: SplitExpense?
 
     public init(group: SplitGroup) {
         self.group = group
@@ -133,11 +134,17 @@ public struct GroupDetailView: View {
                     } else {
                         VStack(spacing: SplitSpacing.sm) {
                             ForEach(viewModel.expenses) { expense in
-                                ExpenseRowView(
-                                    expense: expense,
-                                    currentUserId: currentUserId,
-                                    shares: viewModel.memberShares[expense.id] ?? []
-                                )
+                                Button {
+                                    SplitHaptics.impact(.light)
+                                    selectedExpense = expense
+                                } label: {
+                                    ExpenseRowView(
+                                        expense: expense,
+                                        currentUserId: currentUserId,
+                                        shares: viewModel.memberShares[expense.id] ?? []
+                                    )
+                                }
+                                .buttonStyle(SplitPressableButtonStyle())
                             }
                         }
                     }
@@ -183,6 +190,19 @@ public struct GroupDetailView: View {
                     await viewModel.loadGroupData(environment: environment)
                 }
             }
+        }
+        .sheet(item: $selectedExpense) { expense in
+            ExpenseDetailView(
+                expense: expense,
+                group: group,
+                members: viewModel.members,
+                initialShares: viewModel.memberShares[expense.id] ?? [],
+                onExpenseDeleted: {
+                    Task {
+                        await viewModel.loadGroupData(environment: environment)
+                    }
+                }
+            )
         }
         .sheet(isPresented: $showSettingsSheet) {
             GroupSettingsSheet(

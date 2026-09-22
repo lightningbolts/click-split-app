@@ -13,6 +13,8 @@ public enum SplitMethod: String, Codable, CaseIterable, Sendable, CustomStringCo
         case .customPercent: return "Custom %"
         }
     }
+
+    public var title: String { description }
 }
 
 /// Source indicating how an expense was captured.

@@ -7,6 +7,7 @@ public struct DashboardView: View {
     @State private var viewModel = DashboardViewModel()
     @State private var showCreateGroupSheet = false
     @State private var showJoinGroupSheet = false
+    @State private var showProfileSheet = false
     @State private var selectedGroup: SplitGroup?
 
     public init() {}
@@ -101,6 +102,23 @@ public struct DashboardView: View {
                 .background(SplitColors.paper.ignoresSafeArea())
                 .navigationTitle("Click Split")
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            SplitHaptics.impact(.light)
+                            showProfileSheet = true
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(SplitColors.paperDim)
+                                    .overlay(Circle().stroke(SplitColors.ink, lineWidth: 1.5))
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(SplitColors.ink)
+                            }
+                            .frame(width: 32, height: 32)
+                        }
+                    }
+
                     ToolbarItem(placement: .primaryAction) {
                         Button {
                             SplitHaptics.impact(.light)
@@ -162,6 +180,9 @@ public struct DashboardView: View {
                         await viewModel.loadData(environment: environment)
                     }
                 })
+            }
+            .sheet(isPresented: $showProfileSheet) {
+                UserProfileSheet()
             }
             .sheet(isPresented: Binding(
                 get: { router.showJoinGroupSheet },

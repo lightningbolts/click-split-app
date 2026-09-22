@@ -32,13 +32,15 @@ public struct VNDocumentScannerView: UIViewControllerRepresentable {
 
     public func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {}
 
-    public class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
+    @MainActor
+    public class Coordinator: NSObject, @preconcurrency VNDocumentCameraViewControllerDelegate {
         let parent: VNDocumentScannerView
 
         init(_ parent: VNDocumentScannerView) {
             self.parent = parent
         }
 
+        @MainActor
         public func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
             if scan.pageCount > 0 {
                 let image = scan.imageOfPage(at: 0)
@@ -48,10 +50,12 @@ public struct VNDocumentScannerView: UIViewControllerRepresentable {
             }
         }
 
+        @MainActor
         public func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
             parent.onCancel()
         }
 
+        @MainActor
         public func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
             parent.onCancel()
         }

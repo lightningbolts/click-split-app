@@ -191,11 +191,11 @@ public struct AddExpenseView: View {
                 ReceiptScannerSheet(
                     members: members,
                     onItemsReady: { items, total in
-                        self.scannedItems = items
-                        self.amountString = String(describing: total)
-                        self.splitMethod = .byItem
-                        if self.descriptionText.isEmpty {
-                            self.descriptionText = "Scanned Receipt"
+                        scannedItems = items
+                        amountString = "\(total)"
+                        splitMethod = .byItem
+                        if descriptionText.isEmpty {
+                            descriptionText = "Scanned Receipt"
                         }
                     }
                 )

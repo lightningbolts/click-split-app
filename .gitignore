@@ -8,6 +8,8 @@
 *.xcuserstate
 xcuserdata/
 DerivedData/
+build/
+.cache/
 
 # OS
 .DS_Store
