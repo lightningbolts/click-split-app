@@ -17,6 +17,11 @@ public struct GroupSettingsSheet: View {
     @State private var showDeleteDialog = false
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var managedMembers: [SplitGroupMember]
+    @State private var memberEmail = ""
+    @State private var isAddingMember = false
+    @State private var memberPendingRemoval: SplitGroupMember?
+    @State private var removingMemberId: UUID?
 
     public init(
         group: SplitGroup,
@@ -32,6 +37,7 @@ public struct GroupSettingsSheet: View {
         self.onGroupExited = onGroupExited
         self._groupName = State(initialValue: group.name)
         self._selectedIcon = State(initialValue: group.icon ?? "👥")
+        self._managedMembers = State(initialValue: members)
     }
 
     private var currentUserId: UUID {
@@ -43,7 +49,7 @@ public struct GroupSettingsSheet: View {
     }
 
     private var csvExportURL: URL? {
-        let csv = CSVExporter.generateCSV(groupName: group.name, expenses: expenses, members: members)
+        let csv = CSVExporter.generateCSV(groupName: group.name, expenses: expenses, members: managedMembers)
         return CSVExporter.createTemporaryCSVFile(groupName: group.name, csvString: csv)
     }
 
@@ -75,7 +81,7 @@ public struct GroupSettingsSheet: View {
                     // Members List Section
                     VStack(alignment: .leading, spacing: SplitSpacing.sm) {
                         HStack {
-                            Text("MEMBERS (\(members.count))")
+                            Text("MEMBERS (\(managedMembers.count))")
                                 .font(SplitTypography.badge)
                                 .foregroundColor(SplitColors.inkSoft)
                                 .tracking(1)
@@ -93,9 +99,51 @@ public struct GroupSettingsSheet: View {
                             }
                         }
 
+                        if isCreator {
+                            HStack(spacing: SplitSpacing.sm) {
+                                TextField("Member email", text: $memberEmail)
+                                    .font(SplitTypography.body)
+                                    .textInputAutocapitalization(.never)
+                                    .keyboardType(.emailAddress)
+                                    .textContentType(.emailAddress)
+                                    .autocorrectionDisabled()
+                                    .padding(SplitSpacing.sm)
+                                    .background(SplitColors.paper)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                                            .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
+                                    )
+                                    .onSubmit(addMember)
+
+                                Button(action: addMember) {
+                                    Group {
+                                        if isAddingMember {
+                                            ProgressView()
+                                                .controlSize(.small)
+                                        } else {
+                                            Text("Add")
+                                        }
+                                    }
+                                    .font(SplitTypography.buttonSmall)
+                                    .foregroundColor(SplitColors.paper)
+                                    .frame(minWidth: 44)
+                                    .padding(.horizontal, SplitSpacing.sm)
+                                    .padding(.vertical, SplitSpacing.sm)
+                                    .background(SplitColors.ink)
+                                    .clipShape(RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isAddingMember || removingMemberId != nil || memberEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }
+
+                            Text("Add an existing Click account by email. Only the group creator can change membership.")
+                                .font(SplitTypography.caption)
+                                .foregroundColor(SplitColors.inkSoft)
+                        }
+
                         VStack(spacing: SplitSpacing.xs) {
-                            ForEach(members) { member in
-                                HStack {
+                            ForEach(managedMembers) { member in
+                                HStack(spacing: SplitSpacing.sm) {
                                     Text(member.profile?.displayName ?? "Member")
                                         .font(SplitTypography.body)
                                         .foregroundColor(SplitColors.ink)
@@ -111,10 +159,28 @@ public struct GroupSettingsSheet: View {
                                     }
 
                                     Spacer()
+
+                                    if isCreator && member.userId != group.createdBy {
+                                        Button {
+                                            memberPendingRemoval = member
+                                        } label: {
+                                            if removingMemberId == member.userId {
+                                                ProgressView()
+                                                    .controlSize(.small)
+                                            } else {
+                                                Image(systemName: "minus.circle")
+                                                    .font(.system(size: 17, weight: .semibold))
+                                                    .foregroundColor(SplitColors.red)
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(isAddingMember || removingMemberId != nil)
+                                        .accessibilityLabel("Remove \(member.profile?.displayName ?? "member")")
+                                    }
                                 }
                                 .padding(.vertical, SplitSpacing.xs)
 
-                                if member.id != members.last?.id {
+                                if member.id != managedMembers.last?.id {
                                     Divider()
                                 }
                             }
@@ -219,6 +285,73 @@ public struct GroupSettingsSheet: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This will permanently delete the group, all its expenses, items, shares, and settlement records for everyone. This cannot be undone.")
+            }
+            .confirmationDialog(
+                "Remove Member",
+                isPresented: Binding(
+                    get: { memberPendingRemoval != nil },
+                    set: { if !$0 { memberPendingRemoval = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let member = memberPendingRemoval {
+                    Button("Remove \(member.profile?.displayName ?? "Member")", role: .destructive) {
+                        removeMember(member)
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    memberPendingRemoval = nil
+                }
+            } message: {
+                Text("The member must have a settled balance before they can be removed. Their expense history will remain in the group.")
+            }
+        }
+    }
+
+    private func addMember() {
+        let email = memberEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !email.isEmpty, !isAddingMember else { return }
+
+        isAddingMember = true
+        errorMessage = nil
+
+        Task { @MainActor in
+            do {
+                try await environment.groupRepository.addGroupMember(groupId: group.id, email: email)
+                managedMembers = try await environment.groupRepository.fetchGroupMembers(groupId: group.id)
+                memberEmail = ""
+                isAddingMember = false
+                SplitHaptics.notify(.success)
+                onGroupModified()
+            } catch {
+                isAddingMember = false
+                errorMessage = error.localizedDescription
+                SplitHaptics.notify(.error)
+            }
+        }
+    }
+
+    private func removeMember(_ member: SplitGroupMember) {
+        guard removingMemberId == nil else { return }
+
+        removingMemberId = member.userId
+        memberPendingRemoval = nil
+        errorMessage = nil
+
+        Task { @MainActor in
+            do {
+                try await environment.groupRepository.removeGroupMember(
+                    groupId: group.id,
+                    userId: member.userId
+                )
+                managedMembers = try await environment.groupRepository.fetchGroupMembers(groupId: group.id)
+                removingMemberId = nil
+                SplitHaptics.notify(.success)
+                onGroupModified()
+            } catch {
+                removingMemberId = nil
+                errorMessage = error.localizedDescription
+                SplitHaptics.notify(.error)
             }
         }
     }
