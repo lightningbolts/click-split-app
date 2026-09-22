@@ -36,32 +36,33 @@ public final class GroupDetailViewModel: @unchecked Sendable {
         isLoading = true
         errorMessage = nil
 
-        async let fetchedMembers: [SplitGroupMember]? = try? await environment.groupRepository.fetchGroupMembers(groupId: group.id)
-        async let fetchedExpenses: [SplitExpense]? = try? await environment.expenseRepository.fetchExpenses(groupId: group.id)
-        async let fetchedSettlements: [SplitSettlement]? = try? await environment.settlementRepository.fetchSettlements(groupId: group.id)
-        async let fetchedBalance: Decimal? = try? await environment.groupRepository.fetchGroupBalance(
-            groupId: group.id,
+        let groupId = group.id
+        async let fetchedMembers = environment.groupRepository.fetchGroupMembers(groupId: groupId)
+        async let fetchedExpenses = environment.expenseRepository.fetchExpenses(groupId: groupId)
+        async let fetchedSettlements = environment.settlementRepository.fetchSettlements(groupId: groupId)
+        async let fetchedBalance = environment.groupRepository.fetchGroupBalance(
+            groupId: groupId,
             userId: currentUserId
         )
 
         // Apply the data that drives visible components first. Each result is
         // independent so one backend/RLS failure cannot hide members or expenses.
-        let membersResult = await fetchedMembers
+        let membersResult = try? await fetchedMembers
         if let membersResult {
             members = membersResult
         }
 
-        let expensesResult = await fetchedExpenses
+        let expensesResult = try? await fetchedExpenses
         if let expensesResult {
             expenses = expensesResult
         }
 
-        let balanceResult = await fetchedBalance
+        let balanceResult = try? await fetchedBalance
         if let balanceResult {
             userBalance = balanceResult
         }
 
-        let settlementsResult = await fetchedSettlements
+        let settlementsResult = try? await fetchedSettlements
         if let settlementsResult {
             settlements = settlementsResult
         }
@@ -98,7 +99,7 @@ public final class GroupDetailViewModel: @unchecked Sendable {
             for member in membersToHydrate {
                 taskGroup.addTask {
                     let balance = try? await environment.groupRepository.fetchGroupBalance(
-                        groupId: self.group.id,
+                        groupId: groupId,
                         userId: member.userId
                     )
                     return (member.userId, balance)
