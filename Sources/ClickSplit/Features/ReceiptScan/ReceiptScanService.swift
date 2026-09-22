@@ -129,29 +129,50 @@ public final class ReceiptScanService: Sendable {
     }
     #endif
 
-    /// Two-stage receipt extraction:
-    /// Stage 1: Fast local on-device Apple Vision OCR (~150ms).
-    /// Stage 2: Send extracted text payload (~2KB) to Gemini 3.5 Flash Lite for sub-second formatting.
-    /// Stage 3 (Fallback): If text extraction is incomplete or ambiguous, upload full multimodal image.
-    /// Stage 4 (Offline): If network is offline, parse locally with regex heuristics.
+    /// Backwards-compatible single-image entry point.
     public func extractReceipt(
         imageData: Data,
         authToken: String?
     ) async throws -> ReceiptExtractionResult {
+        try await extractReceipt(imageDatas: [imageData], authToken: authToken)
+    }
+
+    /// Multi-page receipt extraction for one logical receipt split across up to 10 images.
+    /// Images must be supplied in top-to-bottom receipt order.
+    public func extractReceipt(
+        imageDatas: [Data],
+        authToken: String?
+    ) async throws -> ReceiptExtractionResult {
+        guard !imageDatas.isEmpty else {
+            throw ReceiptScanError.noItemsFound
+        }
+        guard imageDatas.count <= 10 else {
+            throw ReceiptScanError.tooManyImages
+        }
+
         let endpoint = serverBaseURL.appendingPathComponent("api/split/receipt-scan")
 
         #if canImport(UIKit) && canImport(Vision)
-        // Stage 1: Perform fast on-device Apple Vision OCR
-        var localOcrLines: [String] = []
-        do {
-            localOcrLines = try await Self.performLocalOCR(on: imageData)
-        } catch {
-            print("Local Apple Vision OCR warning: \(error)")
+        // Stage 1: Run Apple Vision OCR page-by-page, preserving page order.
+        var localOcrPages: [[String]] = []
+        for imageData in imageDatas {
+            do {
+                localOcrPages.append(try await Self.performLocalOCR(on: imageData))
+            } catch {
+                print("Local Apple Vision OCR warning: \(error)")
+                localOcrPages.append([])
+            }
         }
 
-        // Stage 2: If we got OCR lines, send compact raw text to Gemini 3.5 Flash Lite for fast formatting
-        if !localOcrLines.isEmpty {
-            let joinedText = localOcrLines.joined(separator: "\n")
+        // Stage 2: Send the compact ordered page text to the server. Page delimiters
+        // let the parser distinguish a genuine repeated purchase from overlapping photos.
+        if localOcrPages.contains(where: { !$0.isEmpty }) {
+            let joinedText = localOcrPages.enumerated()
+                .map { index, lines in
+                    "--- RECEIPT PAGE \(index + 1) OF \(localOcrPages.count) ---\n" + lines.joined(separator: "\n")
+                }
+                .joined(separator: "\n")
+
             if let result = try? await sendExtractionRequest(
                 endpoint: endpoint,
                 payload: ["raw_text": joinedText],
@@ -162,20 +183,27 @@ public final class ReceiptScanService: Sendable {
         }
         #endif
 
-        // Stage 3: Multimodal image fallback if text formatting returned < 2 items or failed
-        let base64String = imageData.base64EncodedString()
+        // Stage 3: Multimodal fallback with every page in the same request so the
+        // model can reconcile overlaps, merchant metadata, tax, tip, and final total.
+        let base64Images = imageDatas.map { $0.base64EncodedString() }
+        let imagePayload: [String: Any] = base64Images.count == 1
+            ? ["image": base64Images[0]]
+            : ["images": base64Images]
+
         if let result = try? await sendExtractionRequest(
             endpoint: endpoint,
-            payload: ["image": base64String],
+            payload: imagePayload,
             authToken: authToken
         ), !result.items.isEmpty {
             return result
         }
 
-        // Stage 4: Completely offline fallback using local regex parsing
+        // Stage 4: Offline fallback. Only remove exact page-boundary overlap;
+        // do not globally dedupe because repeated identical purchases are valid.
         #if canImport(UIKit) && canImport(Vision)
-        if !localOcrLines.isEmpty {
-            let parsedResult = Self.parseReceiptLines(localOcrLines)
+        let mergedLines = Self.mergeOCRPages(localOcrPages)
+        if !mergedLines.isEmpty {
+            let parsedResult = Self.parseReceiptLines(mergedLines)
             if !parsedResult.items.isEmpty {
                 return parsedResult
             }
@@ -187,7 +215,7 @@ public final class ReceiptScanService: Sendable {
 
     private func sendExtractionRequest(
         endpoint: URL,
-        payload: [String: String],
+        payload: [String: Any],
         authToken: String?
     ) async throws -> ReceiptExtractionResult {
         var request = URLRequest(url: endpoint)
@@ -204,6 +232,49 @@ public final class ReceiptScanService: Sendable {
         }
         let decoder = JSONDecoder()
         return try decoder.decode(ReceiptExtractionResult.self, from: data)
+    }
+
+    /// Merges sequential OCR pages while removing only exact overlap at page boundaries.
+    /// This is intentionally conservative: identical items elsewhere remain untouched.
+    public static func mergeOCRPages(_ pages: [[String]], maxOverlapLines: Int = 12) -> [String] {
+        var merged: [String] = []
+
+        func normalize(_ value: String) -> String {
+            value
+                .lowercased()
+                .split(whereSeparator: { $0.isWhitespace })
+                .joined(separator: " ")
+        }
+
+        for page in pages {
+            let lines = page
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            guard !lines.isEmpty else { continue }
+            guard !merged.isEmpty else {
+                merged.append(contentsOf: lines)
+                continue
+            }
+
+            let maximumOverlap = min(maxOverlapLines, merged.count, lines.count)
+            var overlap = 0
+
+            if maximumOverlap > 0 {
+                for candidate in stride(from: maximumOverlap, through: 1, by: -1) {
+                    let mergedSuffix = merged.suffix(candidate).map(normalize)
+                    let pagePrefix = lines.prefix(candidate).map(normalize)
+                    if Array(mergedSuffix) == Array(pagePrefix) {
+                        overlap = candidate
+                        break
+                    }
+                }
+            }
+
+            merged.append(contentsOf: lines.dropFirst(overlap))
+        }
+
+        return merged
     }
 
     /// Intelligent on-device receipt parser extracting line items and prices from OCR text lines.
@@ -317,12 +388,15 @@ public final class ReceiptScanService: Sendable {
 
 public enum ReceiptScanError: LocalizedError {
     case noItemsFound
+    case tooManyImages
     case backendError(String)
 
     public var errorDescription: String? {
         switch self {
         case .noItemsFound:
-            return "Could not recognize any items from the receipt. Please ensure the image is clear and well-lit."
+            return "Could not recognize any items from the receipt. Please ensure the images are clear, ordered, and well-lit."
+        case .tooManyImages:
+            return "Select no more than 10 receipt photos."
         case .backendError(let msg):
             return msg
         }
