@@ -80,7 +80,10 @@ public final class ReceiptScanService: Sendable {
         let minLegibleWidth: CGFloat = 1000
         if targetSize.width < minLegibleWidth && size.width >= minLegibleWidth {
             let scale = minLegibleWidth / size.width
-            targetSize = CGSize(width: minLegibleWidth, height: size.height * scale)
+            let candidate = CGSize(width: minLegibleWidth, height: size.height * scale)
+            if max(candidate.width, candidate.height) <= maxDimension {
+                targetSize = candidate
+            }
         }
 
         let renderer = UIGraphicsImageRenderer(size: targetSize)
