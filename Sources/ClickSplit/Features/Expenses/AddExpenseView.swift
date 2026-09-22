@@ -13,6 +13,8 @@ public struct AddExpenseView: View {
     @State private var descriptionText: String = ""
     @State private var selectedPayerId: UUID
     @State private var splitMethod: SplitMethod = .even
+    @State private var scannedItems: [ExpenseItemDraft] = []
+    @State private var showReceiptScanner = false
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -60,6 +62,39 @@ public struct AddExpenseView: View {
                     .frame(maxWidth: .infinity)
                     .padding(SplitSpacing.xl)
                     .splitCardStyle(surfaceColor: SplitColors.paperDim)
+
+                    // Signature [ Scan Receipt ] action button
+                    SplitButton("Scan Receipt", icon: "doc.viewfinder", variant: .secondary) {
+                        SplitHaptics.impact(.medium)
+                        showReceiptScanner = true
+                    }
+
+                    // Scanned items badge banner if items are attached
+                    if !scannedItems.isEmpty {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(SplitColors.green)
+
+                            Text("\(scannedItems.count) receipt items attached")
+                                .font(SplitTypography.buttonSmall)
+                                .foregroundColor(SplitColors.ink)
+
+                            Spacer()
+
+                            Button("Edit") {
+                                showReceiptScanner = true
+                            }
+                            .font(SplitTypography.caption)
+                            .foregroundColor(SplitColors.green)
+                            .fontWeight(.bold)
+                        }
+                        .padding(SplitSpacing.md)
+                        .background(SplitColors.greenDim)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                                .stroke(SplitColors.green, lineWidth: 1.5)
+                        )
+                    }
 
                     // Description Field
                     VStack(alignment: .leading, spacing: SplitSpacing.sm) {
@@ -128,6 +163,19 @@ public struct AddExpenseView: View {
                     .foregroundColor(SplitColors.ink)
                 }
             }
+            .sheet(isPresented: $showReceiptScanner) {
+                ReceiptScannerSheet(
+                    members: members,
+                    onItemsReady: { items, total in
+                        self.scannedItems = items
+                        self.amountString = String(describing: total)
+                        self.splitMethod = .byItem
+                        if self.descriptionText.isEmpty {
+                            self.descriptionText = "Scanned Receipt"
+                        }
+                    }
+                )
+            }
         }
     }
 
@@ -139,7 +187,8 @@ public struct AddExpenseView: View {
             description: descriptionText.trimmingCharacters(in: .whitespaces),
             total: totalDecimal,
             payerID: selectedPayerId,
-            splitMethod: splitMethod
+            splitMethod: splitMethod,
+            items: scannedItems
         )
 
         Task {
