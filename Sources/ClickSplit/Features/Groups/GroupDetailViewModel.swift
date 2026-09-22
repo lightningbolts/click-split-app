@@ -49,7 +49,7 @@ public final class GroupDetailViewModel: @unchecked Sendable {
         // Apply the data that drives visible components first. Each result is
         // independent so one backend/RLS failure cannot hide members or expenses.
         let groupResult = try? await fetchedGroup
-        if let refreshedGroup = groupResult ?? nil {
+        if let refreshedGroup = groupResult {
             group = refreshedGroup
         }
 
