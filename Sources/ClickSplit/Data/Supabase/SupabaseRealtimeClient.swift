@@ -68,6 +68,7 @@ public final class SupabaseRealtimeClient: @unchecked Sendable {
                 "config": [
                     "broadcast": ["self": true],
                     "postgres_changes": [
+                        ["event": "*", "schema": "public", "table": "split_groups"],
                         ["event": "*", "schema": "public", "table": "split_expenses"],
                         ["event": "*", "schema": "public", "table": "split_expense_items"],
                         ["event": "*", "schema": "public", "table": "split_expense_shares"],
