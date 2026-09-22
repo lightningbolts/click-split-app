@@ -3,10 +3,12 @@ import SwiftUI
 /// Main group detail view displaying members, group balances, actions, and expenses.
 public struct GroupDetailView: View {
     public var group: SplitGroup
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnvironment) private var environment
     @State private var viewModel: GroupDetailViewModel
     @State private var showAddExpenseSheet = false
     @State private var showSettleUpSheet = false
+    @State private var showSettingsSheet = false
 
     public init(group: SplitGroup) {
         self.group = group
@@ -148,24 +150,18 @@ public struct GroupDetailView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
+                    Button {
+                        showSettingsSheet = true
+                    } label: {
+                        Label("Group Settings", systemImage: "gearshape")
+                    }
+
                     ShareLink(
                         item: URL(string: "https://clickplatforms.com/group/\(group.id)")!,
                         subject: Text("Join \(group.name) on Click Split"),
                         message: Text("Join our group on Click Split to share expenses!")
                     ) {
                         Label("Invite Members", systemImage: "person.badge.plus")
-                    }
-
-                    Button {
-                        // Export action
-                    } label: {
-                        Label("Export Expenses CSV", systemImage: "square.and.arrow.up")
-                    }
-
-                    Button(role: .destructive) {
-                        // Leave group action
-                    } label: {
-                        Label("Leave Group", systemImage: "rectangle.portrait.and.arrow.right")
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -188,11 +184,31 @@ public struct GroupDetailView: View {
                 }
             }
         }
+        .sheet(isPresented: $showSettingsSheet) {
+            GroupSettingsSheet(
+                group: group,
+                members: viewModel.members,
+                expenses: viewModel.expenses,
+                onGroupModified: {
+                    Task {
+                        await viewModel.loadGroupData(environment: environment)
+                    }
+                },
+                onGroupExited: {
+                    dismiss()
+                }
+            )
+        }
         .task {
             await viewModel.loadGroupData(environment: environment)
         }
         .refreshable {
             await viewModel.loadGroupData(environment: environment)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: SplitRealtimeNotification.dataChanged)) { _ in
+            Task {
+                await viewModel.loadGroupData(environment: environment)
+            }
         }
     }
 }

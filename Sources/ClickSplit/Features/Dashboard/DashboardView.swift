@@ -3,8 +3,10 @@ import SwiftUI
 /// Primary dashboard view for Click Split.
 public struct DashboardView: View {
     @Environment(\.appEnvironment) private var environment
+    @Environment(\.appRouter) private var router
     @State private var viewModel = DashboardViewModel()
     @State private var showCreateGroupSheet = false
+    @State private var showJoinGroupSheet = false
     @State private var selectedGroup: SplitGroup?
 
     public init() {}
@@ -98,6 +100,28 @@ public struct DashboardView: View {
                 }
                 .background(SplitColors.paper.ignoresSafeArea())
                 .navigationTitle("Click Split")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            SplitHaptics.impact(.light)
+                            showJoinGroupSheet = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "person.badge.plus")
+                                Text("Join")
+                            }
+                            .font(SplitTypography.buttonSmall)
+                            .foregroundColor(SplitColors.ink)
+                            .padding(.horizontal, SplitSpacing.sm)
+                            .padding(.vertical, 4)
+                            .background(SplitColors.paperDim)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                                    .stroke(SplitColors.ink, lineWidth: 1)
+                            )
+                        }
+                    }
+                }
                 .navigationDestination(for: SplitGroup.self) { group in
                     GroupDetailView(group: group)
                 }
@@ -132,11 +156,33 @@ public struct DashboardView: View {
                     }
                 })
             }
+            .sheet(isPresented: $showJoinGroupSheet) {
+                GroupJoinView(onJoined: { joinedGroup in
+                    Task {
+                        await viewModel.loadData(environment: environment)
+                    }
+                })
+            }
+            .sheet(isPresented: Binding(
+                get: { router.showJoinGroupSheet },
+                set: { router.showJoinGroupSheet = $0 }
+            )) {
+                GroupJoinView(prefilledGroupId: router.presentedJoinGroupId) { joinedGroup in
+                    Task {
+                        await viewModel.loadData(environment: environment)
+                    }
+                }
+            }
             .task {
                 await viewModel.loadData(environment: environment)
             }
             .refreshable {
                 await viewModel.loadData(environment: environment)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: SplitRealtimeNotification.dataChanged)) { _ in
+                Task {
+                    await viewModel.loadData(environment: environment)
+                }
             }
         }
     }

@@ -14,6 +14,7 @@ public struct AddExpenseView: View {
     @State private var selectedPayerId: UUID
     @State private var splitMethod: SplitMethod = .even
     @State private var scannedItems: [ExpenseItemDraft] = []
+    @State private var customPercentages: [UUID: Decimal] = [:]
     @State private var showReceiptScanner = false
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -32,6 +33,14 @@ public struct AddExpenseView: View {
 
     private var totalDecimal: Decimal {
         Decimal(string: amountString) ?? 0
+    }
+
+    private var customPercentageSum: Decimal {
+        customPercentages.values.reduce(Decimal.zero, +)
+    }
+
+    private var isCustomPercentageValid: Bool {
+        abs(customPercentageSum - 100) <= Decimal(string: "0.01")!
     }
 
     public var body: some View {
@@ -136,6 +145,16 @@ public struct AddExpenseView: View {
                             options: SplitMethod.allCases,
                             selection: $splitMethod
                         )
+                        .onChange(of: splitMethod) { _, newMethod in
+                            if newMethod == .customPercent && customPercentages.isEmpty {
+                                initializeCustomPercentages()
+                            }
+                        }
+                    }
+
+                    // Custom % Allocation Editor (Section 12)
+                    if splitMethod == .customPercent {
+                        customPercentEditor
                     }
 
                     if let errorMessage {
@@ -148,13 +167,18 @@ public struct AddExpenseView: View {
                     SplitButton("Save expense", icon: "checkmark", variant: .primary, isLoading: isLoading) {
                         saveExpense()
                     }
-                    .disabled(descriptionText.trimmingCharacters(in: .whitespaces).isEmpty || totalDecimal <= 0)
+                    .disabled(
+                        descriptionText.trimmingCharacters(in: .whitespaces).isEmpty ||
+                        totalDecimal <= 0 ||
+                        (splitMethod == .customPercent && !isCustomPercentageValid)
+                    )
                 }
                 .padding(SplitSpacing.lg)
             }
             .background(SplitColors.paper.ignoresSafeArea())
             .navigationTitle("Add Expense")
             .splitInlineTitleDisplayMode()
+            .splitKeyboardDoneButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -179,16 +203,135 @@ public struct AddExpenseView: View {
         }
     }
 
+    // ────────────────── Custom % Editor View ──────────────────
+
+    private var customPercentEditor: some View {
+        VStack(alignment: .leading, spacing: SplitSpacing.md) {
+            HStack {
+                Text("CUSTOM ALLOCATION")
+                    .font(SplitTypography.badge)
+                    .foregroundColor(SplitColors.inkSoft)
+                    .tracking(1)
+
+                Spacer()
+
+                // Sum indicator badge
+                let sumInt = (customPercentageSum as NSDecimalNumber).intValue
+                HStack(spacing: SplitSpacing.xxs) {
+                    Text("Total: \(sumInt)%")
+                        .font(SplitTypography.buttonSmall)
+                        .foregroundColor(isCustomPercentageValid ? SplitColors.green : SplitColors.red)
+
+                    if !isCustomPercentageValid {
+                        let remaining = 100 - customPercentageSum
+                        let remInt = (remaining as NSDecimalNumber).intValue
+                        Text("(\(remInt > 0 ? "+\(remInt)%" : "\(remInt)%"))")
+                            .font(SplitTypography.caption)
+                            .foregroundColor(SplitColors.red)
+                    }
+                }
+            }
+
+            VStack(spacing: SplitSpacing.sm) {
+                ForEach(members) { member in
+                    let uid = member.userId
+                    let currentPercent = customPercentages[uid] ?? 0
+                    let memberShareAmount = (totalDecimal * currentPercent) / 100
+
+                    HStack(spacing: SplitSpacing.md) {
+                        Text(member.profile?.displayName ?? "Member")
+                            .font(SplitTypography.body)
+                            .foregroundColor(SplitColors.ink)
+
+                        Spacer()
+
+                        // Calculated dollar share
+                        SplitAmount(memberShareAmount, style: .small, color: SplitColors.inkSoft)
+
+                        // Editable percentage field
+                        HStack(spacing: 2) {
+                            TextField("0", value: Binding(
+                                get: { currentPercent },
+                                set: { customPercentages[uid] = $0 }
+                            ), format: .number)
+                            .font(SplitTypography.button)
+                            .frame(width: 44)
+                            .multilineTextAlignment(.trailing)
+                            .splitMonospacedDigits()
+                            #if canImport(UIKit)
+                            .keyboardType(.numberPad)
+                            #endif
+
+                            Text("%")
+                                .font(SplitTypography.buttonSmall)
+                                .foregroundColor(SplitColors.inkSoft)
+                        }
+                        .padding(.horizontal, SplitSpacing.sm)
+                        .padding(.vertical, SplitSpacing.xxs)
+                        .background(SplitColors.paper)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                                .stroke(isCustomPercentageValid ? SplitColors.ink : SplitColors.red, lineWidth: 1.5)
+                        )
+                    }
+                    .padding(SplitSpacing.sm)
+                    .background(SplitColors.paperDim)
+                    .cornerRadius(SplitSpacing.cornerRadius)
+                }
+            }
+
+            // Quick action to re-equalize percentages
+            Button(action: {
+                SplitHaptics.impact(.light)
+                initializeCustomPercentages()
+            }) {
+                HStack {
+                    Image(systemName: "equal.circle")
+                    Text("Split Percentages Evenly")
+                }
+                .font(SplitTypography.caption)
+                .foregroundColor(SplitColors.inkSoft)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(SplitSpacing.md)
+        .splitCardStyle(
+            surfaceColor: SplitColors.paperDim,
+            borderColor: isCustomPercentageValid ? SplitColors.ink : SplitColors.red,
+            borderWidth: 1.5,
+            shadowOffset: SplitSpacing.shadowOffsetSmall
+        )
+    }
+
+    private func initializeCustomPercentages() {
+        guard !members.isEmpty else { return }
+        let count = members.count
+        let base = 100 / count
+        let rem = 100 % count
+
+        var map: [UUID: Decimal] = [:]
+        for (idx, member) in members.enumerated() {
+            map[member.userId] = Decimal(base + (idx < rem ? 1 : 0))
+        }
+        self.customPercentages = map
+    }
+
     private func saveExpense() {
         isLoading = true
         errorMessage = nil
+
+        let drafts = customPercentages.map { userId, percent in
+            let computed = (totalDecimal * percent) / 100
+            return MemberShareDraft(userId: userId, percentage: percent, computedAmount: computed)
+        }
 
         let draft = ExpenseDraft(
             description: descriptionText.trimmingCharacters(in: .whitespaces),
             total: totalDecimal,
             payerID: selectedPayerId,
             splitMethod: splitMethod,
-            items: scannedItems
+            items: scannedItems,
+            customShares: drafts
         )
 
         Task {

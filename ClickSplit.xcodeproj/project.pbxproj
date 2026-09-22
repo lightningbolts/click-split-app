@@ -13,7 +13,9 @@
 		15304AA9FDCBE1B01E2E2F38 /* GroupCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81284DEFC756B63A7D02AC6A /* GroupCardView.swift */; };
 		165FF982369CAAEDC7AD25A3 /* DocumentScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22DD1A24AF41D92FB683BFE9 /* DocumentScannerView.swift */; };
 		1C19B285B7F3292EC1BB1413 /* SplitTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0851E4925D688701F49411 /* SplitTypography.swift */; };
+		1F79D2BAA420FF9405DD627C /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A83B3F97920B190A5DCF444 /* AppRouter.swift */; };
 		25E7C4D6D4654E7122DD0DF2 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1D8C7A1CD83AF22A3D3258 /* KeychainHelper.swift */; };
+		30FB2F2E7336964AD76994EF /* GroupJoinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD647D9A139A003065B99991 /* GroupJoinView.swift */; };
 		34EAE594B568F045761C24A6 /* SplitSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1D1C458357B129F6F4205A /* SplitSpacing.swift */; };
 		35CE3D8F20ECB01A1E1B9255 /* SplitBalanceBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AF8DD8C510621DA88039DB /* SplitBalanceBadge.swift */; };
 		3F1C29323A9967A3F8819E8B /* SplitMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24F2DA407EB9BE8F7631199 /* SplitMotion.swift */; };
@@ -21,6 +23,7 @@
 		4D5716A2CA1D563EE6993BF5 /* SplitCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B320A587BCD81A2EEC10365 /* SplitCalculator.swift */; };
 		4E818CDE8D636F16701FC7C3 /* MockSplitRepositories.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95BAC003745F69D795A0A787 /* MockSplitRepositories.swift */; };
 		502E0C384BAB424B7C69E83A /* MemberBalanceRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C4F9DA5B542B05ABFA9441 /* MemberBalanceRowView.swift */; };
+		51060FD7DD7FD58B32E1260D /* SupabaseRealtimeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608DA0390F1D565F288DE972 /* SupabaseRealtimeClient.swift */; };
 		58480F26342068E5CFDED629 /* ClickSplitApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6C9782ED2E9055438686A7 /* ClickSplitApp.swift */; };
 		5AE3FD7DF84906D87B7593A9 /* SplitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96619058CA7764E8AE614372 /* SplitCard.swift */; };
 		6062724B6B23756AC99BF7DB /* SupabaseSettlementRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 263C52C66F7B0435B564CF3F /* SupabaseSettlementRepository.swift */; };
@@ -30,6 +33,7 @@
 		8528790287F8B3B2FE710A6B /* SupabaseClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01D9C8807133144F3C6951F /* SupabaseClientTests.swift */; };
 		8541F7DE4829F6825607D9ED /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28C53144A33212BD2365FACE /* Assets.xcassets */; };
 		859A8C688875B69784397B6E /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB538F4D7F8D0D02A4DA9DA7 /* DashboardViewModel.swift */; };
+		8B52E495199AF4639EA56C81 /* CSVExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB654E43AB0657505310B27 /* CSVExporter.swift */; };
 		8E3D1B85F14051890E04888C /* SettleUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A371370CB23C0FB6675497C /* SettleUpView.swift */; };
 		8F8737F7866B59F2679873E7 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F6CE5442C4914743F03EAF2 /* DashboardView.swift */; };
 		947E9C07481C3F687F1CD56A /* SplitCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3175B516836D4298EAB607C1 /* SplitCalculatorTests.swift */; };
@@ -45,8 +49,10 @@
 		C968F9F2FAF7E75DBBCBE8F0 /* SplitSegmentedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F21748468B7D4EDAC71CC85 /* SplitSegmentedControl.swift */; };
 		CFEF7F03BE08580F6319A709 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875A4440F687E85FB7BEBF93 /* GroupDetailView.swift */; };
 		D4962F58163073A2A8EC7525 /* SplitAmount.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5EAB6A500803BAE1BE834D /* SplitAmount.swift */; };
+		D6379DC2A720F10810BCB363 /* PaymentRailLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B7F5B6E08BC5C269D5855F3 /* PaymentRailLauncher.swift */; };
 		D6D3920AB695BF0233D4605E /* ViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A8112B547B33BE4D1EC487 /* ViewExtensions.swift */; };
 		D70CB1023830FA891D645FA4 /* ExpenseRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EB1133A0B0083B76DB6D8D2 /* ExpenseRowView.swift */; };
+		DA062F68204E52C394A1ABE5 /* GroupSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E5EAF1893C0F5A69FC4782 /* GroupSettingsSheet.swift */; };
 		DCB97E6C41D320207A9F71DD /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7471A0DB2A08D89B3757115A /* SessionStore.swift */; };
 		DFF47A0F53B874F6CCE770CE /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE03450D6BADD89EE74FD3DC /* SupabaseConfig.swift */; };
 		E80962CA1E887F02E4F31FF8 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB3DB430C963DD912726839 /* SupabaseClient.swift */; };
@@ -78,13 +84,16 @@
 		3175B516836D4298EAB607C1 /* SplitCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitCalculatorTests.swift; sourceTree = "<group>"; };
 		3B1D8C7A1CD83AF22A3D3258 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		4A371370CB23C0FB6675497C /* SettleUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettleUpView.swift; sourceTree = "<group>"; };
+		4A83B3F97920B190A5DCF444 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		5F21748468B7D4EDAC71CC85 /* SplitSegmentedControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitSegmentedControl.swift; sourceTree = "<group>"; };
 		5F6CE5442C4914743F03EAF2 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		608DA0390F1D565F288DE972 /* SupabaseRealtimeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseRealtimeClient.swift; sourceTree = "<group>"; };
 		6453990A39F7C43F1B26784D /* SplitColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitColors.swift; sourceTree = "<group>"; };
 		6AB3DB430C963DD912726839 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		6B0BF95C4D740B6D0975927B /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		7471A0DB2A08D89B3757115A /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		76A98892BD7BA786E30149CF /* GroupDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailViewModel.swift; sourceTree = "<group>"; };
+		7B7F5B6E08BC5C269D5855F3 /* PaymentRailLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentRailLauncher.swift; sourceTree = "<group>"; };
 		7F0851E4925D688701F49411 /* SplitTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitTypography.swift; sourceTree = "<group>"; };
 		81284DEFC756B63A7D02AC6A /* GroupCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupCardView.swift; sourceTree = "<group>"; };
 		85D874860DAFB0B405737A31 /* SplitButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitButton.swift; sourceTree = "<group>"; };
@@ -106,8 +115,11 @@
 		DE6C9782ED2E9055438686A7 /* ClickSplitApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickSplitApp.swift; sourceTree = "<group>"; };
 		DF5EAB6A500803BAE1BE834D /* SplitAmount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitAmount.swift; sourceTree = "<group>"; };
 		E61660DC22F4068586D9A199 /* SplitRepositories.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitRepositories.swift; sourceTree = "<group>"; };
+		ECB654E43AB0657505310B27 /* CSVExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExporter.swift; sourceTree = "<group>"; };
 		EE03450D6BADD89EE74FD3DC /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
 		F9C9680A68BD436889DDF2CC /* SupabaseExpenseRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseExpenseRepository.swift; sourceTree = "<group>"; };
+		F9E5EAF1893C0F5A69FC4782 /* GroupSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSettingsSheet.swift; sourceTree = "<group>"; };
+		FD647D9A139A003065B99991 /* GroupJoinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupJoinView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -134,6 +146,15 @@
 				52A0B52665CF37FF45253AD4 /* Components */,
 			);
 			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		186E465B9C1AC643023C89C3 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				ECB654E43AB0657505310B27 /* CSVExporter.swift */,
+				7B7F5B6E08BC5C269D5855F3 /* PaymentRailLauncher.swift */,
+			);
+			path = Utilities;
 			sourceTree = "<group>";
 		};
 		19A919E7CB13307B7F0752D8 /* Products */ = {
@@ -175,6 +196,7 @@
 			isa = PBXGroup;
 			children = (
 				6B0BF95C4D740B6D0975927B /* AppEnvironment.swift */,
+				4A83B3F97920B190A5DCF444 /* AppRouter.swift */,
 				DE6C9782ED2E9055438686A7 /* ClickSplitApp.swift */,
 				90C971926FECFD6CFEB2E6F7 /* ClickSplitRootView.swift */,
 			);
@@ -188,6 +210,7 @@
 				28A41705B201A7CEA814541B /* Expenses */,
 				8C55F6656B4538CA3EBC29BB /* Groups */,
 				B275A432CE78C027D25AC4E1 /* ReceiptScan */,
+				F268184395909EC5F38DC508 /* Settings */,
 				8BFFCA20AD7582C9E60B5133 /* Settlement */,
 			);
 			path = Features;
@@ -219,6 +242,7 @@
 			children = (
 				6AB3DB430C963DD912726839 /* SupabaseClient.swift */,
 				EE03450D6BADD89EE74FD3DC /* SupabaseConfig.swift */,
+				608DA0390F1D565F288DE972 /* SupabaseRealtimeClient.swift */,
 			);
 			path = Supabase;
 			sourceTree = "<group>";
@@ -241,6 +265,7 @@
 			isa = PBXGroup;
 			children = (
 				8F769A9A17AE192391A69D50 /* Extensions */,
+				186E465B9C1AC643023C89C3 /* Utilities */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -295,6 +320,7 @@
 				9DE45A111DD0BEF9EB31F3B4 /* CreateGroupSheet.swift */,
 				875A4440F687E85FB7BEBF93 /* GroupDetailView.swift */,
 				76A98892BD7BA786E30149CF /* GroupDetailViewModel.swift */,
+				FD647D9A139A003065B99991 /* GroupJoinView.swift */,
 				456BE71C858395ABB33BAA47 /* Components */,
 			);
 			path = Groups;
@@ -354,6 +380,14 @@
 				5E6D71F92B046BAF3FC76251 /* Supabase */,
 			);
 			path = Data;
+			sourceTree = "<group>";
+		};
+		F268184395909EC5F38DC508 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				F9E5EAF1893C0F5A69FC4782 /* GroupSettingsSheet.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -444,6 +478,8 @@
 			files = (
 				068B8CC34C6AE5021F7699B4 /* AddExpenseView.swift in Sources */,
 				C9154E6C249FE6A34C7CA38F /* AppEnvironment.swift in Sources */,
+				1F79D2BAA420FF9405DD627C /* AppRouter.swift in Sources */,
+				8B52E495199AF4639EA56C81 /* CSVExporter.swift in Sources */,
 				58480F26342068E5CFDED629 /* ClickSplitApp.swift in Sources */,
 				B81C7920F8557224D5B99860 /* ClickSplitRootView.swift in Sources */,
 				06EB3E05B2D29FF73C848BDF /* CreateGroupSheet.swift in Sources */,
@@ -454,9 +490,12 @@
 				15304AA9FDCBE1B01E2E2F38 /* GroupCardView.swift in Sources */,
 				CFEF7F03BE08580F6319A709 /* GroupDetailView.swift in Sources */,
 				AD002FAE85D4A1081BF297C5 /* GroupDetailViewModel.swift in Sources */,
+				30FB2F2E7336964AD76994EF /* GroupJoinView.swift in Sources */,
+				DA062F68204E52C394A1ABE5 /* GroupSettingsSheet.swift in Sources */,
 				25E7C4D6D4654E7122DD0DF2 /* KeychainHelper.swift in Sources */,
 				502E0C384BAB424B7C69E83A /* MemberBalanceRowView.swift in Sources */,
 				4E818CDE8D636F16701FC7C3 /* MockSplitRepositories.swift in Sources */,
+				D6379DC2A720F10810BCB363 /* PaymentRailLauncher.swift in Sources */,
 				0781DF7BDD6482908941F36A /* ReceiptReviewView.swift in Sources */,
 				6737832B1025D323A424F206 /* ReceiptScanService.swift in Sources */,
 				A21C14B82C0B2B1BF88EB811 /* ReceiptScannerSheet.swift in Sources */,
@@ -480,6 +519,7 @@
 				DFF47A0F53B874F6CCE770CE /* SupabaseConfig.swift in Sources */,
 				C9059E827EFAFC12C727B6AD /* SupabaseExpenseRepository.swift in Sources */,
 				A45E7F3D0222AC7DD14DF34F /* SupabaseGroupRepository.swift in Sources */,
+				51060FD7DD7FD58B32E1260D /* SupabaseRealtimeClient.swift in Sources */,
 				6062724B6B23756AC99BF7DB /* SupabaseSettlementRepository.swift in Sources */,
 				D6D3920AB695BF0233D4605E /* ViewExtensions.swift in Sources */,
 			);

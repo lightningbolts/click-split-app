@@ -4,6 +4,7 @@ import AuthenticationServices
 /// Root view of Click Split handling session routing and root environment injection.
 public struct ClickSplitRootView: View {
     @State private var environment: AppEnvironment
+    @State private var router = AppRouter()
 
     public init(environment: AppEnvironment = AppEnvironment.live()) {
         self._environment = State(initialValue: environment)
@@ -19,6 +20,10 @@ public struct ClickSplitRootView: View {
             }
         }
         .environment(\.appEnvironment, environment)
+        .environment(\.appRouter, router)
+        .onOpenURL { url in
+            router.handleIncomingURL(url)
+        }
         .tint(SplitColors.ink)
     }
 }
