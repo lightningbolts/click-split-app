@@ -30,6 +30,23 @@ public struct GroupPreviewMeta: Sendable {
     }
 }
 
+/// Data already fetched for a dashboard group card that can seed the detail screen immediately.
+public struct GroupDetailSnapshot: Sendable {
+    public let members: [SplitGroupMember]
+    public let expenses: [SplitExpense]
+    public let userBalance: Decimal
+
+    public init(
+        members: [SplitGroupMember],
+        expenses: [SplitExpense],
+        userBalance: Decimal
+    ) {
+        self.members = members
+        self.expenses = expenses
+        self.userBalance = userBalance
+    }
+}
+
 /// Observable presentation model for the Dashboard screen.
 @Observable
 public final class DashboardViewModel: @unchecked Sendable {
@@ -37,6 +54,7 @@ public final class DashboardViewModel: @unchecked Sendable {
     public var groupBalances: [UUID: Decimal] = [:]
     public var memberSummaries: [UUID: String] = [:]
     public var groupMeta: [UUID: GroupPreviewMeta] = [:]
+    public var groupDetailSnapshots: [UUID: GroupDetailSnapshot] = [:]
     public var totalOwedToYou: Decimal = 0
     public var totalYouOwe: Decimal = 0
     public var isLoading: Bool = false
@@ -63,8 +81,9 @@ public final class DashboardViewModel: @unchecked Sendable {
             var balances: [UUID: Decimal] = [:]
             var summaries: [UUID: String] = [:]
             var metas: [UUID: GroupPreviewMeta] = [:]
+            var snapshots: [UUID: GroupDetailSnapshot] = [:]
 
-            await withTaskGroup(of: (UUID, Decimal, String, GroupPreviewMeta).self) { taskGroup in
+            await withTaskGroup(of: (UUID, Decimal, String, GroupPreviewMeta, GroupDetailSnapshot).self) { taskGroup in
                 for splitGroup in fetchedGroups {
                     taskGroup.addTask {
                         let bal = (try? await environment.groupRepository.fetchGroupBalance(groupId: splitGroup.id, userId: userId)) ?? Decimal.zero
@@ -105,14 +124,21 @@ public final class DashboardViewModel: @unchecked Sendable {
                             latestExpenseAmount: latest?.totalAmount
                         )
 
-                        return (splitGroup.id, bal, summary, meta)
+                        let snapshot = GroupDetailSnapshot(
+                            members: members,
+                            expenses: sortedExpenses,
+                            userBalance: bal
+                        )
+
+                        return (splitGroup.id, bal, summary, meta, snapshot)
                     }
                 }
 
-                for await (groupId, bal, summary, meta) in taskGroup {
+                for await (groupId, bal, summary, meta, snapshot) in taskGroup {
                     balances[groupId] = bal
                     summaries[groupId] = summary
                     metas[groupId] = meta
+                    snapshots[groupId] = snapshot
                     if bal > 0 {
                         owedToYou += bal
                     } else if bal < 0 {
@@ -124,6 +150,7 @@ public final class DashboardViewModel: @unchecked Sendable {
             self.groupBalances = balances
             self.memberSummaries = summaries
             self.groupMeta = metas
+            self.groupDetailSnapshots = snapshots
             self.totalOwedToYou = owedToYou
             self.totalYouOwe = youOwe
             self.isLoading = false
