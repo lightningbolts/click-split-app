@@ -234,7 +234,29 @@ public final class SupabaseClient: Sendable {
         return try JSONDecoder().decode(AuthResponse.self, from: data)
     }
 
-    /// Exchanges a persisted refresh token for a fresh Supabase session.\n    public func refreshSession(refreshToken: String) async throws -> AuthResponse {\n        let endpoint = supabaseURL.appendingPathComponent("auth/v1/token")\n        var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)\n        components?.queryItems = [URLQueryItem(name: "grant_type", value: "refresh_token")]\n        guard let url = components?.url else { throw SupabaseError.invalidURL }\n\n        var request = URLRequest(url: url)\n        request.httpMethod = "POST"\n        for (key, value) in makeHeaders(authToken: nil) {\n            request.setValue(value, forHTTPHeaderField: key)\n        }\n        request.httpBody = try JSONEncoder().encode(["refresh_token": refreshToken])\n\n        let (data, response) = try await session.data(for: request)\n        try validateResponse(response, data: data)\n\n        let decoder = JSONDecoder()\n        decoder.dateDecodingStrategy = .iso8601\n        return try decoder.decode(AuthResponse.self, from: data)\n    }\n\n    /// Fetches the authenticated user profile from Supabase Auth.
+    /// Exchanges a persisted refresh token for a fresh Supabase session.
+    public func refreshSession(refreshToken: String) async throws -> AuthResponse {
+        let endpoint = supabaseURL.appendingPathComponent("auth/v1/token")
+        var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "grant_type", value: "refresh_token")]
+        guard let url = components?.url else { throw SupabaseError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        for (key, value) in makeHeaders(authToken: nil) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.httpBody = try JSONEncoder().encode(["refresh_token": refreshToken])
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(AuthResponse.self, from: data)
+    }
+
+    /// Fetches the authenticated user profile from Supabase Auth.
     public func getUser(authToken: String) async throws -> AuthUser {
         let endpoint = supabaseURL.appendingPathComponent("auth/v1/user")
         var request = URLRequest(url: endpoint)
