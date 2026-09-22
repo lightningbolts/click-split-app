@@ -74,7 +74,6 @@ public final class DashboardViewModel: @unchecked Sendable {
 
         do {
             let fetchedGroups = try await environment.groupRepository.fetchUserGroups(userId: userId)
-            self.groups = fetchedGroups
 
             var owedToYou: Decimal = 0
             var youOwe: Decimal = 0
@@ -147,6 +146,10 @@ public final class DashboardViewModel: @unchecked Sendable {
                 }
             }
 
+            // Publish the list and its prefetched detail data together. This prevents
+            // a tappable group card from appearing before its destination has enough
+            // data to render immediately.
+            self.groups = fetchedGroups
             self.groupBalances = balances
             self.memberSummaries = summaries
             self.groupMeta = metas
