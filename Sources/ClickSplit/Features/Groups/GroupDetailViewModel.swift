@@ -4,7 +4,7 @@ import Observation
 /// Observable state model for Group Detail.
 @Observable
 public final class GroupDetailViewModel: @unchecked Sendable {
-    public let group: SplitGroup
+    public var group: SplitGroup
     public var members: [SplitGroupMember] = []
     public var expenses: [SplitExpense] = []
     public var memberShares: [UUID: [SplitExpenseShare]] = [:]
@@ -37,6 +37,7 @@ public final class GroupDetailViewModel: @unchecked Sendable {
         errorMessage = nil
 
         let groupId = group.id
+        async let fetchedGroup = environment.groupRepository.fetchGroup(id: groupId)
         async let fetchedMembers = environment.groupRepository.fetchGroupMembers(groupId: groupId)
         async let fetchedExpenses = environment.expenseRepository.fetchExpenses(groupId: groupId)
         async let fetchedSettlements = environment.settlementRepository.fetchSettlements(groupId: groupId)
@@ -47,6 +48,11 @@ public final class GroupDetailViewModel: @unchecked Sendable {
 
         // Apply the data that drives visible components first. Each result is
         // independent so one backend/RLS failure cannot hide members or expenses.
+        let groupResult = try? await fetchedGroup
+        if let refreshedGroup = groupResult ?? nil {
+            group = refreshedGroup
+        }
+
         let membersResult = try? await fetchedMembers
         if let membersResult {
             members = membersResult
