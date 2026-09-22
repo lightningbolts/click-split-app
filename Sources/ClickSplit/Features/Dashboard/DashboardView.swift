@@ -213,10 +213,17 @@ public struct DashboardView: View {
             } else {
                 VStack(spacing: SplitSpacing.md) {
                     ForEach(viewModel.groups) { group in
+                        let meta = viewModel.groupMeta[group.id]
                         NavigationLink(value: group) {
                             GroupCardView(
                                 group: group,
-                                balance: viewModel.groupBalances[group.id] ?? 0
+                                balance: meta?.balance ?? viewModel.groupBalances[group.id] ?? 0,
+                                memberSummary: meta?.memberSummary ?? viewModel.memberSummaries[group.id],
+                                memberCount: meta?.memberCount ?? 1,
+                                expenseCount: meta?.expenseCount ?? 0,
+                                totalSpend: meta?.totalSpend ?? 0,
+                                latestExpenseDesc: meta?.latestExpenseDesc,
+                                latestExpenseAmount: meta?.latestExpenseAmount
                             )
                         }
                         .buttonStyle(.plain)

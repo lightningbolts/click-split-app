@@ -8,6 +8,7 @@
 *.xcuserstate
 xcuserdata/
 DerivedData/
+.derivedData/
 build/
 .cache/
 

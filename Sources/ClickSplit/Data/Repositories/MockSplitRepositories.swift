@@ -104,11 +104,20 @@ public actor MockExpenseRepository: ExpenseRepositoryProtocol {
 
     public init(sampleData: Bool = true) {
         if sampleData {
+            let g1 = UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")!
             let g2 = UUID(uuidString: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")!
             let currentUserId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
             let alexId = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+            let noahId = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
             let claireId = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
 
+            let e0 = SplitExpense(
+                groupId: g1,
+                description: "Campsite Rental",
+                totalAmount: 126.24,
+                paidBy: currentUserId,
+                splitMethod: .even
+            )
             let e1 = SplitExpense(
                 groupId: g2,
                 description: "Dinner",
@@ -124,9 +133,14 @@ public actor MockExpenseRepository: ExpenseRepositoryProtocol {
                 splitMethod: .even
             )
 
-            self.expenses = [e1, e2]
+            self.expenses = [e0, e1, e2]
             self.items = [:]
             self.shares = [
+                e0.id: [
+                    SplitExpenseShare(expenseId: e0.id, userId: currentUserId, shareAmount: Decimal(string: "42.08")!),
+                    SplitExpenseShare(expenseId: e0.id, userId: alexId, shareAmount: Decimal(string: "42.08")!),
+                    SplitExpenseShare(expenseId: e0.id, userId: noahId, shareAmount: Decimal(string: "42.08")!)
+                ],
                 e1.id: [
                     SplitExpenseShare(expenseId: e1.id, userId: currentUserId, shareAmount: 40),
                     SplitExpenseShare(expenseId: e1.id, userId: alexId, shareAmount: 40),
