@@ -5,16 +5,20 @@ public struct DashboardView: View {
     @Environment(\.appEnvironment) private var environment
     @Environment(\.appRouter) private var router
     @State private var viewModel = DashboardViewModel()
+    @State private var selectedTab: SplitTab = .groups
     @State private var showCreateGroupSheet = false
     @State private var showJoinGroupSheet = false
     @State private var showProfileSheet = false
-    @State private var selectedGroup: SplitGroup?
+    @State private var showGroupPickerForScan = false
+    @State private var scanGroup: SplitGroup?
+    @State private var showScannerSheet = false
+    @State private var scanMembers: [SplitGroupMember] = []
 
     public init() {}
 
     public var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
+            ZStack(alignment: .bottom) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: SplitSpacing.xl) {
                         // Overall Balance Hero Card
@@ -43,61 +47,16 @@ public struct DashboardView: View {
                             shadowOffset: SplitSpacing.shadowOffset
                         )
 
-                        // Groups Header
-                        HStack {
-                            Text("YOUR GROUPS")
-                                .font(SplitTypography.sectionHeader)
-                                .foregroundColor(SplitColors.ink)
-                                .tracking(1)
-
-                            Spacer()
-
-                            Text("\(viewModel.groups.count)")
-                                .font(SplitTypography.badge)
-                                .padding(.horizontal, SplitSpacing.sm)
-                                .padding(.vertical, SplitSpacing.xxs)
-                                .background(SplitColors.paperDim)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                        .stroke(SplitColors.ink, lineWidth: 1)
-                                )
-                        }
-
-                        // Group Cards List
-                        if viewModel.isLoading && viewModel.groups.isEmpty {
-                            ProgressView()
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, SplitSpacing.xxl)
-                        } else if viewModel.groups.isEmpty {
-                            VStack(spacing: SplitSpacing.md) {
-                                Text("No groups yet")
-                                    .font(SplitTypography.title)
-                                    .foregroundColor(SplitColors.ink)
-
-                                Text("Create a group or join an existing trip to split expenses.")
-                                    .font(SplitTypography.body)
-                                    .foregroundColor(SplitColors.inkSoft)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .padding(SplitSpacing.xxl)
-                            .frame(maxWidth: .infinity)
-                            .splitCardStyle(surfaceColor: SplitColors.paperDim)
+                        if selectedTab == .groups {
+                            // Groups Section
+                            groupsSection
                         } else {
-                            VStack(spacing: SplitSpacing.md) {
-                                ForEach(viewModel.groups) { group in
-                                    NavigationLink(value: group) {
-                                        GroupCardView(
-                                            group: group,
-                                            balance: viewModel.groupBalances[group.id] ?? 0
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
+                            // Activity Section
+                            activitySection
                         }
                     }
                     .padding(SplitSpacing.lg)
-                    .padding(.bottom, 80) // Space for bottom action button
+                    .padding(.bottom, 110) // Space for floating liquid glass nav bar
                 }
                 .background(SplitColors.paper.ignoresSafeArea())
                 .navigationTitle("Click Split")
@@ -144,28 +103,20 @@ public struct DashboardView: View {
                     GroupDetailView(group: group)
                 }
 
-                // Primary Action Button (Green neo-brutalist square +)
-                Button(action: {
-                    SplitHaptics.impact(.medium)
-                    showCreateGroupSheet = true
-                }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .black))
-                        .foregroundColor(SplitColors.white)
-                        .frame(width: 56, height: 56)
-                        .background(SplitColors.green)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
-                        )
-                        .background(
-                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                .fill(SplitColors.ink)
-                                .offset(x: SplitSpacing.shadowOffset, y: SplitSpacing.shadowOffset)
-                        )
-                }
-                .padding(.trailing, SplitSpacing.xl)
-                .padding(.bottom, SplitSpacing.xl)
+                // Floating Liquid Glass Bottom Navigation Bar
+                LiquidGlassNavBar(
+                    selectedTab: $selectedTab,
+                    onAddGroup: {
+                        showCreateGroupSheet = true
+                    },
+                    onScanReceipt: {
+                        handleScanTap()
+                    },
+                    onOpenProfile: {
+                        showProfileSheet = true
+                    }
+                )
+                .padding(.bottom, SplitSpacing.sm)
             }
             .sheet(isPresented: $showCreateGroupSheet) {
                 CreateGroupSheet(onGroupCreated: { newGroup in
@@ -183,6 +134,16 @@ public struct DashboardView: View {
             }
             .sheet(isPresented: $showProfileSheet) {
                 UserProfileSheet()
+            }
+            .sheet(isPresented: $showGroupPickerForScan) {
+                groupPickerSheet
+            }
+            .sheet(isPresented: $showScannerSheet) {
+                ReceiptScannerSheet(members: scanMembers) { items, total in
+                    Task {
+                        await viewModel.loadData(environment: environment)
+                    }
+                }
             }
             .sheet(isPresented: Binding(
                 get: { router.showJoinGroupSheet },
@@ -203,6 +164,202 @@ public struct DashboardView: View {
             .onReceive(NotificationCenter.default.publisher(for: SplitRealtimeNotification.dataChanged)) { _ in
                 Task {
                     await viewModel.loadData(environment: environment)
+                }
+            }
+        }
+    }
+
+    // MARK: - Subviews
+
+    private var groupsSection: some View {
+        VStack(alignment: .leading, spacing: SplitSpacing.md) {
+            HStack {
+                Text("YOUR GROUPS")
+                    .font(SplitTypography.sectionHeader)
+                    .foregroundColor(SplitColors.ink)
+                    .tracking(1)
+
+                Spacer()
+
+                Text("\(viewModel.groups.count)")
+                    .font(SplitTypography.badge)
+                    .padding(.horizontal, SplitSpacing.sm)
+                    .padding(.vertical, SplitSpacing.xxs)
+                    .background(SplitColors.paperDim)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                            .stroke(SplitColors.ink, lineWidth: 1)
+                    )
+            }
+
+            if viewModel.isLoading && viewModel.groups.isEmpty {
+                ProgressView()
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, SplitSpacing.xxl)
+            } else if viewModel.groups.isEmpty {
+                VStack(spacing: SplitSpacing.md) {
+                    Text("No groups yet")
+                        .font(SplitTypography.title)
+                        .foregroundColor(SplitColors.ink)
+
+                    Text("Create a group or join an existing trip to split expenses.")
+                        .font(SplitTypography.body)
+                        .foregroundColor(SplitColors.inkSoft)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(SplitSpacing.xxl)
+                .frame(maxWidth: .infinity)
+                .splitCardStyle(surfaceColor: SplitColors.paperDim)
+            } else {
+                VStack(spacing: SplitSpacing.md) {
+                    ForEach(viewModel.groups) { group in
+                        NavigationLink(value: group) {
+                            GroupCardView(
+                                group: group,
+                                balance: viewModel.groupBalances[group.id] ?? 0
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var activitySection: some View {
+        VStack(alignment: .leading, spacing: SplitSpacing.md) {
+            HStack {
+                Text("BALANCE SUMMARY")
+                    .font(SplitTypography.sectionHeader)
+                    .foregroundColor(SplitColors.ink)
+                    .tracking(1)
+
+                Spacer()
+            }
+
+            if viewModel.groups.isEmpty {
+                VStack(spacing: SplitSpacing.md) {
+                    Text("No active balances")
+                        .font(SplitTypography.title)
+                        .foregroundColor(SplitColors.ink)
+
+                    Text("When you join groups and add expenses, running debt calculations will appear here.")
+                        .font(SplitTypography.body)
+                        .foregroundColor(SplitColors.inkSoft)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(SplitSpacing.xxl)
+                .frame(maxWidth: .infinity)
+                .splitCardStyle(surfaceColor: SplitColors.paperDim)
+            } else {
+                VStack(spacing: SplitSpacing.md) {
+                    ForEach(viewModel.groups) { group in
+                        let bal = viewModel.groupBalances[group.id] ?? 0
+                        HStack(spacing: SplitSpacing.md) {
+                            Text(group.icon ?? "👥")
+                                .font(.system(size: 26))
+                                .frame(width: 44, height: 44)
+                                .background(SplitColors.paper)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                                        .stroke(SplitColors.ink, lineWidth: 1.5)
+                                )
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(group.name)
+                                    .font(SplitTypography.title)
+                                    .foregroundColor(SplitColors.ink)
+
+                                Text(bal > 0 ? "You are owed in this group" : (bal < 0 ? "You owe in this group" : "All settled up"))
+                                    .font(SplitTypography.caption)
+                                    .foregroundColor(SplitColors.inkSoft)
+                            }
+
+                            Spacer()
+
+                            SplitAmount(abs(bal), style: .medium, color: bal >= 0 ? SplitColors.green : SplitColors.red)
+                        }
+                        .padding(SplitSpacing.md)
+                        .splitCardStyle(surfaceColor: SplitColors.paperDim)
+                    }
+                }
+            }
+        }
+    }
+
+    private var groupPickerSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: SplitSpacing.lg) {
+                Text("Select a group for receipt scan:")
+                    .font(SplitTypography.body)
+                    .foregroundColor(SplitColors.inkSoft)
+
+                ScrollView {
+                    VStack(spacing: SplitSpacing.sm) {
+                        ForEach(viewModel.groups) { group in
+                            Button {
+                                SplitHaptics.selection()
+                                showGroupPickerForScan = false
+                                startScan(for: group)
+                            } label: {
+                                HStack(spacing: SplitSpacing.md) {
+                                    Text(group.icon ?? "👥")
+                                        .font(.system(size: 24))
+                                    Text(group.name)
+                                        .font(SplitTypography.title)
+                                        .foregroundColor(SplitColors.ink)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(SplitColors.grey)
+                                }
+                                .padding(SplitSpacing.md)
+                                .splitCardStyle(surfaceColor: SplitColors.paperDim)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(SplitSpacing.lg)
+            .background(SplitColors.paper.ignoresSafeArea())
+            .navigationTitle("Scan Receipt")
+            .splitInlineTitleDisplayMode()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showGroupPickerForScan = false
+                    }
+                    .foregroundColor(SplitColors.ink)
+                }
+            }
+        }
+    }
+
+    private func handleScanTap() {
+        if viewModel.groups.isEmpty {
+            showCreateGroupSheet = true
+        } else if viewModel.groups.count == 1, let singleGroup = viewModel.groups.first {
+            startScan(for: singleGroup)
+        } else {
+            showGroupPickerForScan = true
+        }
+    }
+
+    private func startScan(for group: SplitGroup) {
+        scanGroup = group
+        Task {
+            do {
+                let members = try await environment.groupRepository.fetchGroupMembers(groupId: group.id)
+                await MainActor.run {
+                    self.scanMembers = members
+                    self.showScannerSheet = true
+                }
+            } catch {
+                await MainActor.run {
+                    self.scanMembers = []
+                    self.showScannerSheet = true
                 }
             }
         }

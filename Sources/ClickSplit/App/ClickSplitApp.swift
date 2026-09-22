@@ -7,7 +7,10 @@ public struct ClickSplitApp: App {
 
     public var body: some Scene {
         WindowGroup {
-            ClickSplitRootView()
+            let environment = ProcessInfo.processInfo.arguments.contains("-preview")
+                ? AppEnvironment.preview()
+                : AppEnvironment.live()
+            ClickSplitRootView(environment: environment)
         }
     }
 }

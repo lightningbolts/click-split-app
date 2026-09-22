@@ -80,6 +80,49 @@ public struct AuthenticationView: View {
             Spacer()
 
             VStack(spacing: SplitSpacing.md) {
+                // Primary: Continue with Google Button (matches web app)
+                Button {
+                    SplitHaptics.impact(.medium)
+                    isAuthenticating = true
+                    errorMessage = nil
+                    Task {
+                        await environment.sessionStore.signInWithGoogle()
+                        isAuthenticating = false
+                        if case .error(let msg) = environment.sessionStore.state {
+                            errorMessage = msg
+                        }
+                    }
+                } label: {
+                    HStack(spacing: SplitSpacing.sm) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 24, height: 24)
+                            Text("G")
+                                .font(.system(size: 15, weight: .black, design: .rounded))
+                                .foregroundColor(Color(red: 0.26, green: 0.52, blue: 0.96))
+                        }
+
+                        Text("Continue with Google")
+                            .font(SplitTypography.button)
+                            .foregroundColor(SplitColors.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(SplitColors.ink)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                            .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
+                    )
+                    .background(
+                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                            .fill(SplitColors.ink)
+                            .offset(x: SplitSpacing.shadowOffsetSmall, y: SplitSpacing.shadowOffsetSmall)
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(isAuthenticating)
+
                 // Native Sign in with Apple Button
                 SignInWithAppleButton(
                     .continue,
@@ -106,9 +149,20 @@ public struct AuthenticationView: View {
                 SplitButton("Demo Account Sign In", icon: "person.crop.circle.badge.checkmark", variant: .secondary, isLoading: isAuthenticating) {
                     signInDemoAccount()
                 }
+
+                // Footnote matching web sign-in
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(SplitColors.green)
+                        .frame(width: 6, height: 6)
+                    Text("Uses your Click identity: same login, same profile")
+                        .font(SplitTypography.caption)
+                        .foregroundColor(SplitColors.grey)
+                }
+                .padding(.top, SplitSpacing.xs)
             }
             .padding(.horizontal, SplitSpacing.lg)
-            .padding(.bottom, SplitSpacing.xxl)
+            .padding(.bottom, SplitSpacing.xl)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(SplitColors.paper.ignoresSafeArea())
@@ -128,10 +182,18 @@ public struct AuthenticationView: View {
                         idToken: idTokenString
                     )
                     isAuthenticating = false
+                    if case .error(let msg) = environment.sessionStore.state {
+                        errorMessage = msg
+                    }
                 }
             }
         case .failure(let error):
-            self.errorMessage = error.localizedDescription
+            let nsError = error as NSError
+            if nsError.domain == "com.apple.AuthenticationServices.AuthorizationError" && nsError.code == 1000 {
+                self.errorMessage = "Sign in with Apple is not active in this simulator. Please use 'Continue with Google' or 'Demo Account Sign In'."
+            } else {
+                self.errorMessage = error.localizedDescription
+            }
         }
     }
 

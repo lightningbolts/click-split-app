@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00D14CFC50DCA290BA0D5202 /* LiquidGlassNavBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C58C0C3BECA4669B17FC7C /* LiquidGlassNavBar.swift */; };
 		068B8CC34C6AE5021F7699B4 /* AddExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E8B6D3032FB7776E7777A87 /* AddExpenseView.swift */; };
 		06EB3E05B2D29FF73C848BDF /* CreateGroupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE45A111DD0BEF9EB31F3B4 /* CreateGroupSheet.swift */; };
 		0781DF7BDD6482908941F36A /* ReceiptReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA38A6B55A1AAF831808C5C /* ReceiptReviewView.swift */; };
@@ -30,6 +31,7 @@
 		6062724B6B23756AC99BF7DB /* SupabaseSettlementRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 263C52C66F7B0435B564CF3F /* SupabaseSettlementRepository.swift */; };
 		64D020069CF0F9B0DF00093E /* SplitHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB5A7C952ABD81BFCAF00036 /* SplitHaptics.swift */; };
 		6737832B1025D323A424F206 /* ReceiptScanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B604148ACE38730F215367 /* ReceiptScanService.swift */; };
+		705EA15252F5922A7BAA4C29 /* GroupIconPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C6BCC74738A409B4B3ED82 /* GroupIconPicker.swift */; };
 		728F90C049573813A5BBC012 /* ExpenseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDE220619D5D6556E9F3989 /* ExpenseDetailView.swift */; };
 		79FF3DBCDB157E214CE3CA23 /* SplitModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE67C6C6B04772C40D33AB92 /* SplitModels.swift */; };
 		8528790287F8B3B2FE710A6B /* SupabaseClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01D9C8807133144F3C6951F /* SupabaseClientTests.swift */; };
@@ -111,7 +113,9 @@
 		95BAC003745F69D795A0A787 /* MockSplitRepositories.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSplitRepositories.swift; sourceTree = "<group>"; };
 		96619058CA7764E8AE614372 /* SplitCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitCard.swift; sourceTree = "<group>"; };
 		9DE45A111DD0BEF9EB31F3B4 /* CreateGroupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateGroupSheet.swift; sourceTree = "<group>"; };
+		A1C6BCC74738A409B4B3ED82 /* GroupIconPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupIconPicker.swift; sourceTree = "<group>"; };
 		B01D9C8807133144F3C6951F /* SupabaseClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClientTests.swift; sourceTree = "<group>"; };
+		B0C58C0C3BECA4669B17FC7C /* LiquidGlassNavBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassNavBar.swift; sourceTree = "<group>"; };
 		B12FAB078BC9E00623CF292F /* SupabaseGroupRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseGroupRepository.swift; sourceTree = "<group>"; };
 		B24F2DA407EB9BE8F7631199 /* SplitMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitMotion.swift; sourceTree = "<group>"; };
 		CB538F4D7F8D0D02A4DA9DA7 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
@@ -236,6 +240,7 @@
 		52A0B52665CF37FF45253AD4 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				B0C58C0C3BECA4669B17FC7C /* LiquidGlassNavBar.swift */,
 				DF5EAB6A500803BAE1BE834D /* SplitAmount.swift */,
 				26AF8DD8C510621DA88039DB /* SplitBalanceBadge.swift */,
 				85D874860DAFB0B405737A31 /* SplitButton.swift */,
@@ -328,6 +333,7 @@
 				9DE45A111DD0BEF9EB31F3B4 /* CreateGroupSheet.swift */,
 				875A4440F687E85FB7BEBF93 /* GroupDetailView.swift */,
 				76A98892BD7BA786E30149CF /* GroupDetailViewModel.swift */,
+				A1C6BCC74738A409B4B3ED82 /* GroupIconPicker.swift */,
 				FD647D9A139A003065B99991 /* GroupJoinView.swift */,
 				456BE71C858395ABB33BAA47 /* Components */,
 			);
@@ -508,9 +514,11 @@
 				15304AA9FDCBE1B01E2E2F38 /* GroupCardView.swift in Sources */,
 				CFEF7F03BE08580F6319A709 /* GroupDetailView.swift in Sources */,
 				AD002FAE85D4A1081BF297C5 /* GroupDetailViewModel.swift in Sources */,
+				705EA15252F5922A7BAA4C29 /* GroupIconPicker.swift in Sources */,
 				30FB2F2E7336964AD76994EF /* GroupJoinView.swift in Sources */,
 				DA062F68204E52C394A1ABE5 /* GroupSettingsSheet.swift in Sources */,
 				25E7C4D6D4654E7122DD0DF2 /* KeychainHelper.swift in Sources */,
+				00D14CFC50DCA290BA0D5202 /* LiquidGlassNavBar.swift in Sources */,
 				502E0C384BAB424B7C69E83A /* MemberBalanceRowView.swift in Sources */,
 				4E818CDE8D636F16701FC7C3 /* MockSplitRepositories.swift in Sources */,
 				D6379DC2A720F10810BCB363 /* PaymentRailLauncher.swift in Sources */,
@@ -574,6 +582,7 @@
 				CODE_SIGN_IDENTITY = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Click Split";
+				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLSchemes\": [\"clicksplit\"], \"CFBundleURLName\": \"com.clickplatforms.split\"]]";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Click Split needs camera access to scan physical receipts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Click Split needs photo library access to upload receipts.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -600,6 +609,7 @@
 				CODE_SIGN_IDENTITY = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Click Split";
+				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLSchemes\": [\"clicksplit\"], \"CFBundleURLName\": \"com.clickplatforms.split\"]]";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Click Split needs camera access to scan physical receipts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Click Split needs photo library access to upload receipts.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

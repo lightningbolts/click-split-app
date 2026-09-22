@@ -35,16 +35,27 @@ public enum KeychainHelper {
 
     // ────────────────── Internal Keychain Operations ──────────────────
 
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var inMemoryFallback: [String: Data] = [:]
+
     private static func save(key: String, data: Data) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
-            kSecValueData as String: data
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
         ]
 
         SecItemDelete(query as CFDictionary)
-        SecItemAdd(query as CFDictionary, nil)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        lock.lock()
+        defer { lock.unlock() }
+        if status != errSecSuccess {
+            inMemoryFallback[key] = data
+        } else {
+            inMemoryFallback.removeValue(forKey: key)
+        }
     }
 
     private static func load(key: String) -> Data? {
@@ -58,8 +69,12 @@ public enum KeychainHelper {
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return data
+        if status == errSecSuccess, let data = item as? Data {
+            return data
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        return inMemoryFallback[key]
     }
 
     private static func delete(key: String) {
@@ -69,5 +84,8 @@ public enum KeychainHelper {
             kSecAttrAccount as String: key
         ]
         SecItemDelete(query as CFDictionary)
+        lock.lock()
+        defer { lock.unlock() }
+        inMemoryFallback.removeValue(forKey: key)
     }
 }

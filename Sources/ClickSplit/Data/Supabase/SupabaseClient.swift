@@ -199,6 +199,36 @@ public final class SupabaseClient: Sendable {
         return try JSONDecoder().decode(AuthResponse.self, from: data)
     }
 
+    /// Fetches the authenticated user profile from Supabase Auth.
+    public func getUser(authToken: String) async throws -> AuthUser {
+        let endpoint = supabaseURL.appendingPathComponent("auth/v1/user")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        for (key, value) in makeHeaders(authToken: authToken) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(AuthUser.self, from: data)
+    }
+
+    /// Constructs the OAuth authorization URL for the specified provider (e.g. "google").
+    public func makeOAuthURL(provider: String, redirectTo: String = "clicksplit://auth-callback") -> URL? {
+        guard var components = URLComponents(url: supabaseURL.appendingPathComponent("auth/v1/authorize"), resolvingAgainstBaseURL: false) else {
+            return nil
+        }
+        components.queryItems = [
+            URLQueryItem(name: "provider", value: provider),
+            URLQueryItem(name: "redirect_to", value: redirectTo),
+            URLQueryItem(name: "scopes", value: "openid profile email")
+        ]
+        return components.url
+    }
+
     // ────────────────── Response Validator ──────────────────
 
     private func validateResponse(_ response: URLResponse, data: Data) throws {
@@ -222,5 +252,64 @@ public struct AuthResponse: Codable, Sendable {
 public struct AuthUser: Codable, Sendable {
     public let id: UUID
     public let email: String?
-    public let user_metadata: [String: String]?
+    public let rawMetadata: [String: AnyCodableValue]?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case rawMetadata = "user_metadata"
+    }
+
+    public var fullName: String? {
+        rawMetadata?["full_name"]?.stringValue
+            ?? rawMetadata?["name"]?.stringValue
+    }
+
+    public var avatarUrl: String? {
+        rawMetadata?["avatar_url"]?.stringValue
+            ?? rawMetadata?["picture"]?.stringValue
+    }
+}
+
+public enum AnyCodableValue: Codable, Sendable {
+    case string(String)
+    case bool(Bool)
+    case int(Int)
+    case double(Double)
+    case other
+
+    public var stringValue: String? {
+        switch self {
+        case .string(let s): return s
+        case .int(let i): return String(i)
+        case .double(let d): return String(d)
+        default: return nil
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let s = try? container.decode(String.self) {
+            self = .string(s)
+        } else if let b = try? container.decode(Bool.self) {
+            self = .bool(b)
+        } else if let i = try? container.decode(Int.self) {
+            self = .int(i)
+        } else if let d = try? container.decode(Double.self) {
+            self = .double(d)
+        } else {
+            self = .other
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let s): try container.encode(s)
+        case .bool(let b): try container.encode(b)
+        case .int(let i): try container.encode(i)
+        case .double(let d): try container.encode(d)
+        case .other: try container.encodeNil()
+        }
+    }
 }

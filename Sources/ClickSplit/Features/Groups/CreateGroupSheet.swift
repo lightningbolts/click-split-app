@@ -11,72 +11,49 @@ public struct CreateGroupSheet: View {
 
     public var onGroupCreated: (SplitGroup) -> Void
 
-    private let availableIcons = ["🍜", "🌲", "🏠", "✈️", "☕️", "🎉", "🛒", "🚗"]
-
     public init(onGroupCreated: @escaping (SplitGroup) -> Void) {
         self.onGroupCreated = onGroupCreated
     }
 
     public var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: SplitSpacing.xl) {
-                // Icon Selector
-                VStack(alignment: .leading, spacing: SplitSpacing.sm) {
-                    Text("CHOOSE ICON")
-                        .font(SplitTypography.badge)
-                        .foregroundColor(SplitColors.inkSoft)
+            ScrollView {
+                VStack(alignment: .leading, spacing: SplitSpacing.xl) {
+                    // Group Name Input
+                    VStack(alignment: .leading, spacing: SplitSpacing.sm) {
+                        Text("GROUP NAME")
+                            .font(SplitTypography.badge)
+                            .foregroundColor(SplitColors.inkSoft)
+                            .tracking(1)
 
-                    HStack(spacing: SplitSpacing.sm) {
-                        ForEach(availableIcons, id: \.self) { icon in
-                            Button(action: {
-                                SplitHaptics.selection()
-                                selectedIcon = icon
-                            }) {
-                                Text(icon)
-                                    .font(.system(size: 24))
-                                    .frame(width: 44, height: 44)
-                                    .background(selectedIcon == icon ? SplitColors.paperDim : SplitColors.paper)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                            .stroke(selectedIcon == icon ? SplitColors.green : SplitColors.ink, lineWidth: selectedIcon == icon ? 2.5 : 1)
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        TextField("e.g. Vancouver Trip, Roommates", text: $groupName)
+                            .font(SplitTypography.body)
+                            .padding(SplitSpacing.md)
+                            .background(SplitColors.paper)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                                    .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
+                            )
                     }
+
+                    // Complete Icon Selector with Categories & Custom Input
+                    GroupIconPicker(selectedIcon: $selectedIcon)
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(SplitTypography.caption)
+                            .foregroundColor(SplitColors.red)
+                    }
+
+                    // Create Button
+                    SplitButton("Create group", icon: "checkmark", variant: .primary, isLoading: isLoading) {
+                        createGroup()
+                    }
+                    .disabled(groupName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .padding(.top, SplitSpacing.md)
                 }
-
-                // Name Input
-                VStack(alignment: .leading, spacing: SplitSpacing.sm) {
-                    Text("GROUP NAME")
-                        .font(SplitTypography.badge)
-                        .foregroundColor(SplitColors.inkSoft)
-
-                    TextField("e.g. Vancouver Trip, Roommates", text: $groupName)
-                        .font(SplitTypography.body)
-                        .padding(SplitSpacing.md)
-                        .background(SplitColors.paper)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
-                        )
-                }
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(SplitTypography.caption)
-                        .foregroundColor(SplitColors.red)
-                }
-
-                Spacer()
-
-                // Create Button
-                SplitButton("Create group", icon: "checkmark", variant: .primary, isLoading: isLoading) {
-                    createGroup()
-                }
-                .disabled(groupName.trimmingCharacters(in: .whitespaces).isEmpty)
+                .padding(SplitSpacing.xl)
             }
-            .padding(SplitSpacing.xl)
             .background(SplitColors.paper.ignoresSafeArea())
             .navigationTitle("New Group")
             .splitInlineTitleDisplayMode()

@@ -88,11 +88,120 @@ public final class SessionStore: @unchecked Sendable {
             let user = SplitUserProfile(
                 id: response.user.id,
                 email: response.user.email,
-                fullName: response.user.user_metadata?["full_name"] ?? response.user.user_metadata?["name"]
+                fullName: response.user.fullName,
+                avatarUrl: response.user.avatarUrl
             )
             self.signIn(user: user, token: response.access_token)
         } catch {
             self.state = .error(error.localizedDescription)
         }
     }
+
+    /// Initiates Supabase Google OAuth via ASWebAuthenticationSession.
+    @MainActor
+    public func signInWithGoogle(
+        client: SupabaseClient = SupabaseClient(),
+        callbackScheme: String = "clicksplit"
+    ) async {
+        guard let oauthURL = client.makeOAuthURL(provider: "google", redirectTo: "\(callbackScheme)://auth-callback") else {
+            self.state = .error("Failed to construct Google OAuth URL.")
+            return
+        }
+
+        self.state = .authenticating
+
+        do {
+            let callbackURL: URL = try await withCheckedThrowingContinuation { continuation in
+                let session = ASWebAuthenticationSession(
+                    url: oauthURL,
+                    callbackURLScheme: callbackScheme
+                ) { url, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else if let url {
+                        continuation.resume(returning: url)
+                    } else {
+                        continuation.resume(throwing: SupabaseClient.SupabaseError.unauthenticated)
+                    }
+                }
+                session.presentationContextProvider = WebAuthContextProvider.shared
+                session.prefersEphemeralWebBrowserSession = false
+
+                if !session.start() {
+                    continuation.resume(throwing: SupabaseClient.SupabaseError.invalidURL)
+                }
+            }
+
+            // Extract tokens from the callback URL:
+            // Callback format: clicksplit://auth-callback#access_token=...&refresh_token=...
+            var tokenString: String?
+
+            if let fragment = callbackURL.fragment {
+                let params = fragment.components(separatedBy: "&")
+                for param in params {
+                    let pair = param.components(separatedBy: "=")
+                    if pair.count == 2 && pair[0] == "access_token" {
+                        tokenString = pair[1].removingPercentEncoding ?? pair[1]
+                        break
+                    }
+                }
+            }
+
+            if tokenString == nil, let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+               let items = components.queryItems {
+                tokenString = items.first(where: { $0.name == "access_token" })?.value
+            }
+
+            guard let accessToken = tokenString, !accessToken.isEmpty else {
+                throw SupabaseClient.SupabaseError.httpError(
+                    statusCode: 400,
+                    message: "No access token found in OAuth redirect callback: \(callbackURL.absoluteString)"
+                )
+            }
+
+            // Fetch user profile from Supabase with the access token
+            let authUser = try await client.getUser(authToken: accessToken)
+            let user = SplitUserProfile(
+                id: authUser.id,
+                email: authUser.email,
+                fullName: authUser.fullName,
+                avatarUrl: authUser.avatarUrl
+            )
+
+            self.signIn(user: user, token: accessToken)
+        } catch let asError as ASAuthorizationError where asError.code == .canceled {
+            self.state = .unauthenticated
+        } catch {
+            self.state = .error(error.localizedDescription)
+        }
+    }
 }
+
+#if canImport(AuthenticationServices)
+import AuthenticationServices
+#if canImport(UIKit)
+import UIKit
+#endif
+
+@MainActor
+final class WebAuthContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    static let shared = WebAuthContextProvider()
+
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        #if canImport(UIKit)
+        if let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let window = windowScene.windows.first(where: { $0.isKeyWindow }) {
+            return window
+        }
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
+            return window
+        }
+        return UIWindow()
+        #else
+        return ASPresentationAnchor()
+        #endif
+    }
+}
+#endif
+

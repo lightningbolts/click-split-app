@@ -18,8 +18,6 @@ public struct GroupSettingsSheet: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
 
-    private let availableIcons = ["🍜", "🌲", "🏠", "✈️", "☕️", "🎉", "🛒", "🚗", "🏖️", "🍕"]
-
     public init(
         group: SplitGroup,
         members: [SplitGroupMember],
@@ -60,25 +58,6 @@ public struct GroupSettingsSheet: View {
                             .foregroundColor(SplitColors.inkSoft)
                             .tracking(1)
 
-                        HStack(spacing: SplitSpacing.sm) {
-                            ForEach(availableIcons.prefix(5), id: \.self) { icon in
-                                Button(action: {
-                                    SplitHaptics.selection()
-                                    selectedIcon = icon
-                                }) {
-                                    Text(icon)
-                                        .font(.system(size: 22))
-                                        .frame(width: 44, height: 44)
-                                        .background(selectedIcon == icon ? SplitColors.paperDim : SplitColors.paper)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                                .stroke(selectedIcon == icon ? SplitColors.green : SplitColors.ink, lineWidth: selectedIcon == icon ? 2.5 : 1)
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-
                         TextField("Group Name", text: $groupName)
                             .font(SplitTypography.body)
                             .padding(SplitSpacing.md)
@@ -87,6 +66,8 @@ public struct GroupSettingsSheet: View {
                                 RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
                                     .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
                             )
+
+                        GroupIconPicker(selectedIcon: $selectedIcon)
                     }
                     .padding(SplitSpacing.lg)
                     .splitCardStyle(surfaceColor: SplitColors.paperDim)
