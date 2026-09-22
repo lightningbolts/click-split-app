@@ -214,8 +214,14 @@ public struct ReceiptScannerSheet: View {
 
     #if canImport(UIKit)
     private func processImages(_ images: [UIImage]) {
-        let compressedImages = images.prefix(10).compactMap {
-            ReceiptScanService.compressImage($0)
+        let limitedImages = Array(images.prefix(10))
+        let isMultiPage = limitedImages.count > 1
+        let compressedImages = limitedImages.compactMap {
+            ReceiptScanService.compressImage(
+                $0,
+                maxDimension: isMultiPage ? 1800 : 2400,
+                compressionQuality: isMultiPage ? 0.72 : 0.85
+            )
         }
 
         guard !compressedImages.isEmpty else {
