@@ -257,7 +257,7 @@ public final class ReceiptScanService: Sendable {
                 continue
             }
 
-            let maximumOverlap = min(maxOverlapLines, merged.count, lines.count)
+            let maximumOverlap = min(maxOverlapLines, min(merged.count, lines.count))
             var overlap = 0
 
             if maximumOverlap > 0 {
