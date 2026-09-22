@@ -41,11 +41,35 @@ public final class SupabaseGroupRepository: GroupRepositoryProtocol, @unchecked 
     }
 
     public func fetchGroupMembers(groupId: UUID) async throws -> [SplitGroupMember] {
-        return try await client.fetch(
+        let memberships: [SplitGroupMember] = try await client.fetch(
             table: "split_group_members",
             filters: [URLQueryItem(name: "group_id", value: "eq.\(groupId.uuidString)")],
             authToken: token
         )
+
+        guard !memberships.isEmpty else { return [] }
+
+        let userIds = memberships.map { $0.userId.uuidString.lowercased() }.joined(separator: ",")
+        let profiles: [PublicUserRow] = (try? await client.fetch(
+            table: "users",
+            select: "id,name,image,email",
+            filters: [URLQueryItem(name: "id", value: "in.(\(userIds))")],
+            authToken: token
+        )) ?? []
+        let profileMap = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, $0) })
+
+        return memberships.map { membership in
+            var hydrated = membership
+            if let row = profileMap[membership.userId] {
+                hydrated.profile = SplitUserProfile(
+                    id: row.id,
+                    email: row.email,
+                    fullName: row.name,
+                    avatarUrl: row.image
+                )
+            }
+            return hydrated
+        }
     }
 
     public func createGroup(name: String, icon: String?, createdBy: UUID) async throws -> SplitGroup {

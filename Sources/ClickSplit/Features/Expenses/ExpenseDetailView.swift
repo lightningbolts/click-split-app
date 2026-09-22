@@ -8,6 +8,7 @@ public struct ExpenseDetailView: View {
     public var group: SplitGroup
     public var members: [SplitGroupMember]
     public var initialShares: [SplitExpenseShare]
+    public var onExpenseUpdated: () -> Void
     public var onExpenseDeleted: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -18,6 +19,12 @@ public struct ExpenseDetailView: View {
     @State private var isLoadingItems = false
     @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
+    @State private var isEditing = false
+    @State private var isSaving = false
+    @State private var editDescription: String
+    @State private var editTotal: String
+    @State private var editPayerID: UUID
+    @State private var editableItems: [ExpenseItemDraft] = []
     @State private var errorMessage: String?
 
     public init(
@@ -25,14 +32,19 @@ public struct ExpenseDetailView: View {
         group: SplitGroup,
         members: [SplitGroupMember],
         initialShares: [SplitExpenseShare] = [],
+        onExpenseUpdated: @escaping () -> Void = {},
         onExpenseDeleted: @escaping () -> Void
     ) {
         self.expense = expense
         self.group = group
         self.members = members
         self.initialShares = initialShares
+        self.onExpenseUpdated = onExpenseUpdated
         self.onExpenseDeleted = onExpenseDeleted
         self._shares = State(initialValue: initialShares)
+        self._editDescription = State(initialValue: expense.description)
+        self._editTotal = State(initialValue: NSDecimalNumber(decimal: expense.totalAmount).stringValue)
+        self._editPayerID = State(initialValue: expense.paidBy)
     }
 
     private var currentUserId: UUID? {
@@ -52,13 +64,18 @@ public struct ExpenseDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: SplitSpacing.xl) {
                     headerSection
-                    totalHeroCard
 
-                    if !items.isEmpty {
-                        receiptItemsSection
+                    if isEditing {
+                        editExpenseSection
+                    } else {
+                        totalHeroCard
+
+                        if !items.isEmpty {
+                            receiptItemsSection
+                        }
+
+                        sharesBreakdownSection
                     }
-
-                    sharesBreakdownSection
 
                     if let errorMessage {
                         Text(errorMessage)
@@ -75,10 +92,24 @@ public struct ExpenseDetailView: View {
             .splitInlineTitleDisplayMode()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
+                    Button(isEditing ? "Cancel" : "Done") {
+                        if isEditing {
+                            resetEditState()
+                            isEditing = false
+                        } else {
+                            dismiss()
+                        }
                     }
                     .foregroundColor(SplitColors.ink)
+                }
+
+                ToolbarItem(placement: .primaryAction) {
+                    if !isEditing {
+                        Button("Edit") {
+                            beginEditing()
+                        }
+                        .foregroundColor(SplitColors.ink)
+                    }
                 }
             }
             .task {
@@ -251,6 +282,149 @@ public struct ExpenseDetailView: View {
         }
     }
 
+    private var editExpenseSection: some View {
+        VStack(alignment: .leading, spacing: SplitSpacing.lg) {
+            VStack(alignment: .leading, spacing: SplitSpacing.xxs) {
+                Text("DESCRIPTION")
+                    .font(SplitTypography.badge)
+                    .foregroundColor(SplitColors.inkSoft)
+                    .tracking(1)
+
+                TextField("Expense description", text: $editDescription)
+                    .font(SplitTypography.body)
+                    .padding(SplitSpacing.sm)
+                    .background(SplitColors.paperDim)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                            .stroke(SplitColors.ink, lineWidth: 1.5)
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: SplitSpacing.xxs) {
+                Text("TOTAL AMOUNT")
+                    .font(SplitTypography.badge)
+                    .foregroundColor(SplitColors.inkSoft)
+                    .tracking(1)
+
+                TextField("0.00", text: $editTotal)
+                    .font(SplitTypography.amountLarge)
+                    .keyboardType(.decimalPad)
+                    .padding(SplitSpacing.sm)
+                    .background(SplitColors.paperDim)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                            .stroke(SplitColors.ink, lineWidth: 1.5)
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: SplitSpacing.xxs) {
+                Text("PAID BY")
+                    .font(SplitTypography.badge)
+                    .foregroundColor(SplitColors.inkSoft)
+                    .tracking(1)
+
+                Picker("Paid by", selection: $editPayerID) {
+                    ForEach(members) { member in
+                        Text(member.profile?.displayName ?? "Member")
+                            .tag(member.userId)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, SplitSpacing.sm)
+                .padding(.vertical, SplitSpacing.xs)
+                .background(SplitColors.paperDim)
+                .overlay(
+                    RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                        .stroke(SplitColors.ink, lineWidth: 1.5)
+                )
+            }
+
+            VStack(alignment: .leading, spacing: SplitSpacing.sm) {
+                HStack {
+                    Text("LINE ITEMS")
+                        .font(SplitTypography.sectionHeader)
+                        .foregroundColor(SplitColors.ink)
+                        .tracking(1)
+
+                    Spacer()
+
+                    Button {
+                        editableItems.append(ExpenseItemDraft())
+                    } label: {
+                        Label("Add item", systemImage: "plus")
+                            .font(SplitTypography.buttonSmall)
+                    }
+                    .foregroundColor(SplitColors.ink)
+                }
+
+                if editableItems.isEmpty {
+                    Text("No line items yet. Add items to preserve an itemized receipt.")
+                        .font(SplitTypography.caption)
+                        .foregroundColor(SplitColors.inkSoft)
+                }
+
+                ForEach(editableItems.indices, id: \.self) { index in
+                    VStack(spacing: SplitSpacing.xs) {
+                        HStack(spacing: SplitSpacing.xs) {
+                            TextField("Item", text: Binding(
+                                get: { editableItems[index].label },
+                                set: { editableItems[index].label = $0 }
+                            ))
+                            .font(SplitTypography.body)
+
+                            TextField("0.00", text: itemPriceBinding(index: index))
+                                .font(SplitTypography.body)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 90)
+
+                            Button(role: .destructive) {
+                                editableItems.remove(at: index)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .foregroundColor(SplitColors.red)
+                        }
+
+                        Picker(
+                            "Assigned to",
+                            selection: Binding<UUID?>(
+                                get: { editableItems[index].assignedTo },
+                                set: { editableItems[index].assignedTo = $0 }
+                            )
+                        ) {
+                            Text("Split evenly").tag(Optional<UUID>.none)
+                            ForEach(members) { member in
+                                Text(member.profile?.displayName ?? "Member")
+                                    .tag(Optional(member.userId))
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(SplitSpacing.sm)
+                    .background(SplitColors.paperDim)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                            .stroke(SplitColors.grey.opacity(0.5), lineWidth: 1)
+                    )
+                }
+            }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(SplitTypography.caption)
+                    .foregroundColor(SplitColors.red)
+            }
+
+            SplitButton(isSaving ? "Saving..." : "Save changes", icon: "checkmark", variant: .primary) {
+                saveExpenseEdits()
+            }
+            .disabled(isSaving)
+        }
+    }
+
     private var deleteExpenseButton: some View {
         VStack(spacing: SplitSpacing.xs) {
             Button {
@@ -295,6 +469,9 @@ public struct ExpenseDetailView: View {
 
             let (fetchedItems, fetchedShares) = try await (loadedItems, loadedShares)
             self.items = fetchedItems
+            self.editableItems = fetchedItems.map {
+                ExpenseItemDraft(label: $0.label, price: $0.price, assignedTo: $0.assignedTo)
+            }
             if !fetchedShares.isEmpty {
                 self.shares = fetchedShares
             }
@@ -303,6 +480,95 @@ public struct ExpenseDetailView: View {
         }
 
         isLoadingItems = false
+    }
+
+    private func beginEditing() {
+        errorMessage = nil
+        resetEditState()
+        isEditing = true
+    }
+
+    private func resetEditState() {
+        editDescription = expense.description
+        editTotal = NSDecimalNumber(decimal: expense.totalAmount).stringValue
+        editPayerID = expense.paidBy
+        editableItems = items.map {
+            ExpenseItemDraft(label: $0.label, price: $0.price, assignedTo: $0.assignedTo)
+        }
+    }
+
+    private func itemPriceBinding(index: Int) -> Binding<String> {
+        Binding(
+            get: {
+                NSDecimalNumber(decimal: editableItems[index].price).stringValue
+            },
+            set: { newValue in
+                let normalized = newValue.replacingOccurrences(of: ",", with: ".")
+                editableItems[index].price = Decimal(string: normalized) ?? 0
+            }
+        )
+    }
+
+    private func saveExpenseEdits() {
+        let normalizedTotal = editTotal.replacingOccurrences(of: ",", with: ".")
+        guard
+            !editDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            let total = Decimal(string: normalizedTotal),
+            total > 0
+        else {
+            errorMessage = "Enter a valid description and total amount."
+            return
+        }
+
+        let validItems = editableItems.filter {
+            !$0.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.price >= 0
+        }
+
+        let customShares: [MemberShareDraft]
+        if expense.splitMethod == .customPercent, expense.totalAmount > 0 {
+            customShares = shares.map {
+                MemberShareDraft(
+                    userId: $0.userId,
+                    percentage: ($0.shareAmount / expense.totalAmount) * 100
+                )
+            }
+        } else {
+            customShares = []
+        }
+
+        let receipt = expense.source == .receiptScan
+            ? ReceiptDraft(recognizedItems: validItems)
+            : nil
+
+        let draft = ExpenseDraft(
+            description: editDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+            total: total,
+            payerID: editPayerID,
+            splitMethod: expense.splitMethod,
+            items: validItems,
+            customShares: customShares,
+            receipt: receipt
+        )
+
+        isSaving = true
+        errorMessage = nil
+
+        Task {
+            do {
+                _ = try await environment.expenseRepository.updateExpense(
+                    draft: draft,
+                    groupId: group.id,
+                    expenseId: expense.id
+                )
+                SplitHaptics.notify(.success)
+                onExpenseUpdated()
+                dismiss()
+            } catch {
+                isSaving = false
+                errorMessage = "Failed to update expense: \(error.localizedDescription)"
+                SplitHaptics.notify(.error)
+            }
+        }
     }
 
     private func deleteExpense() {

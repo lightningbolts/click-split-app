@@ -65,7 +65,11 @@ public final class SupabaseExpenseRepository: ExpenseRepositoryProtocol, @unchec
             let domainItems = draft.items.map {
                 SplitExpenseItem(expenseId: UUID(), label: $0.label, price: $0.price, assignedTo: $0.assignedTo)
             }
-            calculatedShares = try SplitCalculator.calculateByItemSplit(items: domainItems, allParticipantUserIds: participantIds)
+            calculatedShares = try SplitCalculator.calculateByItemSplit(
+                items: domainItems,
+                allParticipantUserIds: participantIds,
+                total: draft.total
+            )
         }
 
         struct RPCItem: Encodable {
@@ -172,6 +176,30 @@ public final class SupabaseExpenseRepository: ExpenseRepositoryProtocol, @unchec
             throw SupabaseClient.SupabaseError.httpError(statusCode: 500, message: "Expense insert failed")
         }
 
+        struct InsertItemPayload: Encodable {
+            let expense_id: UUID
+            let label: String
+            let price: Decimal
+            let assigned_to: UUID?
+        }
+
+        if !draft.items.isEmpty {
+            let itemPayloads = draft.items.map {
+                InsertItemPayload(
+                    expense_id: expense.id,
+                    label: $0.label,
+                    price: $0.price,
+                    assigned_to: $0.assignedTo
+                )
+            }
+
+            let _: [SplitExpenseItem] = try await client.insert(
+                table: "split_expense_items",
+                value: itemPayloads,
+                authToken: token
+            )
+        }
+
         struct InsertSharePayload: Encodable {
             let expense_id: UUID
             let user_id: UUID
@@ -189,6 +217,127 @@ public final class SupabaseExpenseRepository: ExpenseRepositoryProtocol, @unchec
         )
 
         return expense
+    }
+
+    public func updateExpense(draft: ExpenseDraft, groupId: UUID, expenseId: UUID) async throws -> SplitExpense {
+        let members: [SplitGroupMember] = try await client.fetch(
+            table: "split_group_members",
+            filters: [URLQueryItem(name: "group_id", value: "eq.\(groupId.uuidString)")],
+            authToken: token
+        )
+        let participantIds = members.map { $0.userId }
+
+        let calculatedShares: [UUID: Decimal]
+        switch draft.splitMethod {
+        case .even:
+            calculatedShares = try SplitCalculator.calculateEvenSplit(
+                total: draft.total,
+                participantUserIds: participantIds
+            )
+        case .customPercent:
+            let percentages = Dictionary(uniqueKeysWithValues: draft.customShares.map {
+                ($0.userId, $0.percentage)
+            })
+            calculatedShares = try SplitCalculator.calculateCustomPercentageSplit(
+                total: draft.total,
+                percentages: percentages
+            )
+        case .byItem:
+            let domainItems = draft.items.map {
+                SplitExpenseItem(
+                    expenseId: expenseId,
+                    label: $0.label,
+                    price: $0.price,
+                    assignedTo: $0.assignedTo
+                )
+            }
+            calculatedShares = try SplitCalculator.calculateByItemSplit(
+                items: domainItems,
+                allParticipantUserIds: participantIds,
+                total: draft.total
+            )
+        }
+
+        struct UpdateExpensePayload: Encodable {
+            let description: String
+            let total_amount: Decimal
+            let paid_by: UUID
+            let split_method: String
+        }
+
+        let updatedRows: [SplitExpense] = try await client.update(
+            table: "split_expenses",
+            value: UpdateExpensePayload(
+                description: draft.description,
+                total_amount: draft.total,
+                paid_by: draft.payerID,
+                split_method: draft.splitMethod.rawValue
+            ),
+            filters: [URLQueryItem(name: "id", value: "eq.\(expenseId.uuidString)")],
+            authToken: token
+        )
+
+        guard let updatedExpense = updatedRows.first else {
+            throw SupabaseClient.SupabaseError.httpError(
+                statusCode: 404,
+                message: "Expense update returned no rows"
+            )
+        }
+
+        try await client.delete(
+            table: "split_expense_items",
+            filters: [URLQueryItem(name: "expense_id", value: "eq.\(expenseId.uuidString)")],
+            authToken: token
+        )
+        try await client.delete(
+            table: "split_expense_shares",
+            filters: [URLQueryItem(name: "expense_id", value: "eq.\(expenseId.uuidString)")],
+            authToken: token
+        )
+
+        struct InsertItemPayload: Encodable {
+            let expense_id: UUID
+            let label: String
+            let price: Decimal
+            let assigned_to: UUID?
+        }
+
+        if !draft.items.isEmpty {
+            let itemPayloads = draft.items.map {
+                InsertItemPayload(
+                    expense_id: expenseId,
+                    label: $0.label,
+                    price: $0.price,
+                    assigned_to: $0.assignedTo
+                )
+            }
+            let _: [SplitExpenseItem] = try await client.insert(
+                table: "split_expense_items",
+                value: itemPayloads,
+                authToken: token
+            )
+        }
+
+        struct InsertSharePayload: Encodable {
+            let expense_id: UUID
+            let user_id: UUID
+            let share_amount: Decimal
+        }
+
+        let sharePayloads = calculatedShares.map { userId, amount in
+            InsertSharePayload(
+                expense_id: expenseId,
+                user_id: userId,
+                share_amount: amount
+            )
+        }
+        let _: [SplitExpenseShare] = try await client.insert(
+            table: "split_expense_shares",
+            value: sharePayloads,
+            authToken: token
+        )
+
+        return updatedExpense
     }
 
     public func deleteExpense(expenseId: UUID) async throws {

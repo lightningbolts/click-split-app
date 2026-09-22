@@ -18,6 +18,7 @@ public protocol ExpenseRepositoryProtocol: Sendable {
     func fetchExpenseItems(expenseId: UUID) async throws -> [SplitExpenseItem]
     func fetchExpenseShares(expenseId: UUID) async throws -> [SplitExpenseShare]
     func createExpense(draft: ExpenseDraft, groupId: UUID) async throws -> SplitExpense
+    func updateExpense(draft: ExpenseDraft, groupId: UUID, expenseId: UUID) async throws -> SplitExpense
     func deleteExpense(expenseId: UUID) async throws
 }
 

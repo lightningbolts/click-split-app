@@ -95,7 +95,8 @@ public enum SplitCalculator {
     /// Items assigned to nil are split evenly across all participants.
     public static func calculateByItemSplit(
         items: [SplitExpenseItem],
-        allParticipantUserIds: [UUID]
+        allParticipantUserIds: [UUID],
+        total: Decimal? = nil
     ) throws -> [UUID: Decimal] {
         guard !allParticipantUserIds.isEmpty else {
             throw SplitError.emptyParticipants
@@ -117,6 +118,31 @@ public enum SplitCalculator {
                 let rem = itemCents % count
                 for (idx, uid) in allParticipantUserIds.enumerated() {
                     userCents[uid, default: 0] += base + (idx < rem ? 1 : 0)
+                }
+            }
+        }
+
+        if let total {
+            guard total >= 0 else {
+                throw SplitError.invalidTotal
+            }
+
+            let targetCents = (total * 100 as NSDecimalNumber).intValue
+            let itemizedCents = userCents.values.reduce(0, +)
+            let adjustment = targetCents - itemizedCents
+
+            if adjustment != 0 {
+                let sign = adjustment > 0 ? 1 : -1
+                let absoluteAdjustment = abs(adjustment)
+                let count = allParticipantUserIds.count
+                let base = absoluteAdjustment / count
+                let remainder = absoluteAdjustment % count
+
+                for (index, userId) in allParticipantUserIds.enumerated() {
+                    userCents[userId, default: 0] += sign * (base + (index < remainder ? 1 : 0))
+                    if userCents[userId, default: 0] < 0 {
+                        throw SplitError.negativeShare
+                    }
                 }
             }
         }

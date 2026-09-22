@@ -310,32 +310,39 @@ public struct DashboardView: View {
                 VStack(spacing: SplitSpacing.md) {
                     ForEach(viewModel.groups) { group in
                         let bal = viewModel.groupBalances[group.id] ?? 0
-                        HStack(spacing: SplitSpacing.md) {
-                            Text(group.icon ?? "👥")
-                                .font(.system(size: 26))
-                                .frame(width: 44, height: 44)
-                                .background(SplitColors.paper)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                        .stroke(SplitColors.ink, lineWidth: 1.5)
-                                )
+                        NavigationLink(value: group) {
+                            HStack(spacing: SplitSpacing.md) {
+                                Text(group.icon ?? "👥")
+                                    .font(.system(size: 26))
+                                    .frame(width: 44, height: 44)
+                                    .background(SplitColors.paper)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                                            .stroke(SplitColors.ink, lineWidth: 1.5)
+                                    )
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(group.name)
-                                    .font(SplitTypography.title)
-                                    .foregroundColor(SplitColors.ink)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(group.name)
+                                        .font(SplitTypography.title)
+                                        .foregroundColor(SplitColors.ink)
 
-                                Text(bal > 0 ? "You are owed in this group" : (bal < 0 ? "You owe in this group" : "All settled up"))
-                                    .font(SplitTypography.caption)
-                                    .foregroundColor(SplitColors.inkSoft)
+                                    Text(bal > 0 ? "You are owed in this group" : (bal < 0 ? "You owe in this group" : "All settled up"))
+                                        .font(SplitTypography.caption)
+                                        .foregroundColor(SplitColors.inkSoft)
+                                }
+
+                                Spacer()
+
+                                SplitAmount(abs(bal), style: .medium, color: bal >= 0 ? SplitColors.green : SplitColors.red)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(SplitColors.grey)
                             }
-
-                            Spacer()
-
-                            SplitAmount(abs(bal), style: .medium, color: bal >= 0 ? SplitColors.green : SplitColors.red)
+                            .padding(SplitSpacing.md)
+                            .splitCardStyle(surfaceColor: SplitColors.paperDim)
                         }
-                        .padding(SplitSpacing.md)
-                        .splitCardStyle(surfaceColor: SplitColors.paperDim)
+                        .buttonStyle(.plain)
                     }
                 }
             }

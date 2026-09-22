@@ -181,7 +181,36 @@ public actor MockExpenseRepository: ExpenseRepositoryProtocol {
             source: draft.receipt != nil ? .receiptScan : .manual
         )
         expenses.insert(expense, at: 0)
+        items[expense.id] = draft.items.map {
+            SplitExpenseItem(expenseId: expense.id, label: $0.label, price: $0.price, assignedTo: $0.assignedTo)
+        }
         return expense
+    }
+
+    public func updateExpense(draft: ExpenseDraft, groupId: UUID, expenseId: UUID) async throws -> SplitExpense {
+        guard let existing = expenses.first(where: { $0.id == expenseId }) else {
+            throw NSError(domain: "ClickSplit.MockExpenseRepository", code: 404)
+        }
+
+        let updated = SplitExpense(
+            id: existing.id,
+            groupId: groupId,
+            description: draft.description,
+            totalAmount: draft.total,
+            paidBy: draft.payerID,
+            splitMethod: draft.splitMethod,
+            source: existing.source,
+            receiptImageUrl: existing.receiptImageUrl,
+            createdAt: existing.createdAt
+        )
+
+        if let index = expenses.firstIndex(where: { $0.id == expenseId }) {
+            expenses[index] = updated
+        }
+        items[expenseId] = draft.items.map {
+            SplitExpenseItem(expenseId: expenseId, label: $0.label, price: $0.price, assignedTo: $0.assignedTo)
+        }
+        return updated
     }
 
     public func deleteExpense(expenseId: UUID) async throws {

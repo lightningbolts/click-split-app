@@ -14,6 +14,7 @@ public struct AddExpenseView: View {
     @State private var selectedPayerId: UUID
     @State private var splitMethod: SplitMethod = .even
     @State private var scannedItems: [ExpenseItemDraft] = []
+    @State private var hasScannedReceipt = false
     @State private var customPercentages: [UUID: Decimal] = [:]
     @State private var showReceiptScanner = false
     @State private var isLoading = false
@@ -32,6 +33,10 @@ public struct AddExpenseView: View {
         self.onExpenseCreated = onExpenseCreated
         let defaultPayer = members.first?.userId ?? UUID()
         self._selectedPayerId = State(initialValue: defaultPayer)
+
+        if prefilledItems != nil {
+            self._hasScannedReceipt = State(initialValue: true)
+        }
 
         if let items = prefilledItems, !items.isEmpty {
             self._scannedItems = State(initialValue: items)
@@ -211,6 +216,7 @@ public struct AddExpenseView: View {
                 ReceiptScannerSheet(
                     members: members,
                     onItemsReady: { items, total, merchant in
+                        hasScannedReceipt = true
                         scannedItems = items
                         amountString = "\(total)"
                         splitMethod = .byItem
@@ -407,7 +413,8 @@ public struct AddExpenseView: View {
             payerID: selectedPayerId,
             splitMethod: splitMethod,
             items: scannedItems,
-            customShares: drafts
+            customShares: drafts,
+            receipt: hasScannedReceipt ? ReceiptDraft(recognizedItems: scannedItems) : nil
         )
 
         Task {

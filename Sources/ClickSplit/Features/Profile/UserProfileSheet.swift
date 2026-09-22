@@ -14,6 +14,14 @@ public struct UserProfileSheet: View {
         environment.sessionStore.currentUser
     }
 
+    private var preferredColorScheme: ColorScheme? {
+        switch theme {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
+
     private var initials: String {
         guard let name = currentUser?.fullName, !name.isEmpty else {
             return "CS"
@@ -239,6 +247,7 @@ public struct UserProfileSheet: View {
                 await environment.sessionStore.refreshUserProfile()
             }
         }
+        .preferredColorScheme(preferredColorScheme)
     }
 
     private func themeButton(title: String, mode: String, icon: String) -> some View {

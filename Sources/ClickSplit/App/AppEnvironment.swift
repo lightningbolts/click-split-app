@@ -33,7 +33,9 @@ public final class AppEnvironment: @unchecked Sendable {
         let expenseRepo = SupabaseExpenseRepository(client: client, sessionStore: sessionStore)
         let settlementRepo = SupabaseSettlementRepository(client: client, sessionStore: sessionStore)
         let realtime = SupabaseRealtimeClient()
-        realtime.connect(authToken: sessionStore.authToken)
+        if let authToken = sessionStore.authToken, !authToken.isEmpty {
+            realtime.connect(authToken: authToken)
+        }
 
         return AppEnvironment(
             sessionStore: sessionStore,
