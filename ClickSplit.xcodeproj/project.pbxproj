@@ -599,10 +599,13 @@
 				CODE_SIGN_ENTITLEMENTS = Resources/ClickSplit.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = W4C3V9Z2N4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Click Split";
-				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLName\": \"com.clickplatforms.split\", \"CFBundleURLSchemes\": [\"clicksplit\", \"click\"]]]";
+				INFOPLIST_KEY_CFBundleShortVersionString = 1.0.0;
+				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLSchemes\": [\"clicksplit\", \"click\"], \"CFBundleURLName\": \"com.clickplatforms.split\"]]";
+				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Click Split needs camera access to scan physical receipts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Click Split needs photo library access to upload receipts.";
@@ -614,6 +617,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.clickplatforms.split;
 				PRODUCT_NAME = ClickSplit;
 				SDKROOT = iphoneos;
@@ -630,10 +634,13 @@
 				CODE_SIGN_ENTITLEMENTS = Resources/ClickSplit.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = W4C3V9Z2N4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Click Split";
-				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLName\": \"com.clickplatforms.split\", \"CFBundleURLSchemes\": [\"clicksplit\", \"click\"]]]";
+				INFOPLIST_KEY_CFBundleShortVersionString = 1.0.0;
+				INFOPLIST_KEY_CFBundleURLTypes = "[[\"CFBundleURLSchemes\": [\"clicksplit\", \"click\"], \"CFBundleURLName\": \"com.clickplatforms.split\"]]";
+				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Click Split needs camera access to scan physical receipts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Click Split needs photo library access to upload receipts.";
@@ -645,6 +652,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.clickplatforms.split;
 				PRODUCT_NAME = ClickSplit;
 				SDKROOT = iphoneos;
