@@ -4,6 +4,7 @@ import Observation
 /// Authentication and session status for the current Click user.
 public enum SessionState: Equatable, Sendable {
     case unauthenticated
+    case restoring
     case authenticating
     case authenticated
     case error(String)
@@ -15,16 +16,19 @@ public final class SessionStore: @unchecked Sendable {
     public var state: SessionState = .unauthenticated
     public var currentUser: SplitUserProfile?
     public var authToken: String?
+    public var refreshToken: String?
 
     public init(
         state: SessionState = .unauthenticated,
         currentUser: SplitUserProfile? = nil,
         authToken: String? = nil,
+        refreshToken: String? = nil,
         restoreFromKeychain: Bool = true
     ) {
         self.state = state
         self.currentUser = currentUser
         self.authToken = authToken
+        self.refreshToken = refreshToken
 
         if restoreFromKeychain && state == .unauthenticated {
             self.restoreSavedSession()
@@ -47,30 +51,90 @@ public final class SessionStore: @unchecked Sendable {
         )
     }
 
-    /// Restores previously persisted session from Keychain.
-    public func restoreSavedSession() {
-        if let token = KeychainHelper.loadToken(),
-           let userId = KeychainHelper.loadUserId() {
-            self.authToken = token
-            self.currentUser = SplitUserProfile(id: userId, email: nil, fullName: "Signed In User")
-            self.state = .authenticated
-            Task { @MainActor in
-                await self.refreshUserProfile()
-            }
-        } else {
+    /// Restores a persisted Supabase session. Refresh tokens are preferred so an
+    /// expired access token never leaves the app in a fake authenticated state.
+    public func restoreSavedSession(client: SupabaseClient = SupabaseClient()) {
+        guard let token = KeychainHelper.loadToken(),
+              let userId = KeychainHelper.loadUserId() else {
             self.state = .unauthenticated
+            return
+        }
+
+        self.state = .restoring
+        self.authToken = token
+        self.refreshToken = KeychainHelper.loadRefreshToken()
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            do {
+                if let persistedRefreshToken = self.refreshToken, !persistedRefreshToken.isEmpty {
+                    let response = try await client.refreshSession(refreshToken: persistedRefreshToken)
+                    guard let accessToken = response.access_token, !accessToken.isEmpty else {
+                        throw SupabaseClient.SupabaseError.unauthenticated
+                    }
+
+                    let user = SplitUserProfile(
+                        id: response.user.id,
+                        email: response.user.email,
+                        fullName: response.user.fullName,
+                        avatarUrl: response.user.avatarUrl
+                    )
+                    self.persistSession(
+                        user: user,
+                        accessToken: accessToken,
+                        refreshToken: response.refresh_token ?? persistedRefreshToken
+                    )
+                } else {
+                    // Migration path for installs created before refresh tokens were persisted.
+                    // Keep the session only if the old access token is still valid.
+                    let authUser = try await client.getUser(authToken: token)
+                    guard authUser.id == userId else {
+                        throw SupabaseClient.SupabaseError.unauthenticated
+                    }
+
+                    let user = SplitUserProfile(
+                        id: authUser.id,
+                        email: authUser.email,
+                        fullName: authUser.fullName,
+                        avatarUrl: authUser.avatarUrl
+                    )
+                    self.persistSession(user: user, accessToken: token, refreshToken: nil)
+                }
+
+                await self.refreshUserProfile(client: client)
+            } catch {
+                self.clearSession()
+            }
         }
     }
 
-    public func signIn(user: SplitUserProfile, token: String) {
-        self.currentUser = user
-        self.authToken = token
-        self.state = .authenticated
-        KeychainHelper.saveToken(token)
-        KeychainHelper.saveUserId(user.id)
+    public func signIn(user: SplitUserProfile, token: String, refreshToken: String? = nil) {
+        persistSession(user: user, accessToken: token, refreshToken: refreshToken)
         Task { @MainActor in
             await self.refreshUserProfile()
         }
+    }
+
+    private func persistSession(user: SplitUserProfile, accessToken: String, refreshToken: String?) {
+        self.currentUser = user
+        self.authToken = accessToken
+        self.refreshToken = refreshToken
+        self.state = .authenticated
+
+        KeychainHelper.saveToken(accessToken)
+        KeychainHelper.saveUserId(user.id)
+        if let refreshToken, !refreshToken.isEmpty {
+            KeychainHelper.saveRefreshToken(refreshToken)
+        }
+    }
+
+    private func clearSession() {
+        self.currentUser = nil
+        self.authToken = nil
+        self.refreshToken = nil
+        self.state = .unauthenticated
+        KeychainHelper.clear()
     }
 
     /// Refreshes the active user's profile from the Click `public.users` table or Supabase auth,
@@ -118,10 +182,7 @@ public final class SessionStore: @unchecked Sendable {
     }
 
     public func signOut() {
-        self.currentUser = nil
-        self.authToken = nil
-        self.state = .unauthenticated
-        KeychainHelper.clear()
+        clearSession()
     }
 
     /// Exchanges an Apple / Google identity token with Supabase Auth.
@@ -141,7 +202,10 @@ public final class SessionStore: @unchecked Sendable {
                 fullName: response.user.fullName,
                 avatarUrl: response.user.avatarUrl
             )
-            self.signIn(user: user, token: response.access_token ?? "")
+            guard let accessToken = response.access_token, !accessToken.isEmpty else {
+                throw SupabaseClient.SupabaseError.unauthenticated
+            }
+            self.signIn(user: user, token: accessToken, refreshToken: response.refresh_token)
         } catch {
             self.state = .error(error.localizedDescription)
         }
@@ -170,7 +234,7 @@ public final class SessionStore: @unchecked Sendable {
                 fullName: response.user.fullName,
                 avatarUrl: response.user.avatarUrl
             )
-            self.signIn(user: user, token: token)
+            self.signIn(user: user, token: token, refreshToken: response.refresh_token)
         } catch {
             self.state = .error(error.localizedDescription)
         }
@@ -199,7 +263,7 @@ public final class SessionStore: @unchecked Sendable {
                     fullName: fullName,
                     avatarUrl: response.user.avatarUrl
                 )
-                self.signIn(user: user, token: token)
+                self.signIn(user: user, token: token, refreshToken: response.refresh_token)
                 return true
             } else {
                 self.state = .unauthenticated
@@ -247,30 +311,32 @@ public final class SessionStore: @unchecked Sendable {
                 }
             }
 
-            // Extract tokens from the callback URL (supports implicit fragment, query, or PKCE code):
+            // Extract tokens from the callback URL (supports implicit fragment, query, or PKCE code).
             var tokenString: String?
+            var refreshTokenString: String?
 
             if let fragment = callbackURL.fragment {
-                let params = fragment.components(separatedBy: "&")
-                for param in params {
-                    let pair = param.components(separatedBy: "=")
-                    if pair.count == 2 && pair[0] == "access_token" {
-                        tokenString = pair[1].removingPercentEncoding ?? pair[1]
-                        break
-                    }
+                let items = fragment.split(separator: "&").compactMap { item -> (String, String)? in
+                    let pair = item.split(separator: "=", maxSplits: 1).map(String.init)
+                    guard pair.count == 2 else { return nil }
+                    return (pair[0], pair[1].removingPercentEncoding ?? pair[1])
                 }
+                tokenString = items.first(where: { $0.0 == "access_token" })?.1
+                refreshTokenString = items.first(where: { $0.0 == "refresh_token" })?.1
             }
 
-            if tokenString == nil, let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+            if let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
                let items = components.queryItems {
-                tokenString = items.first(where: { $0.name == "access_token" })?.value
+                tokenString = tokenString ?? items.first(where: { $0.name == "access_token" })?.value
+                refreshTokenString = refreshTokenString ?? items.first(where: { $0.name == "refresh_token" })?.value
             }
 
-            // If an authorization code is returned, exchange it for tokens
+            // If an authorization code is returned, exchange it for a complete session.
             if tokenString == nil, let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
                let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
                 let authResponse = try await client.exchangeCodeForSession(code: code)
                 tokenString = authResponse.access_token
+                refreshTokenString = authResponse.refresh_token
             }
 
             guard let accessToken = tokenString, !accessToken.isEmpty else {
@@ -289,7 +355,7 @@ public final class SessionStore: @unchecked Sendable {
                 avatarUrl: authUser.avatarUrl
             )
 
-            self.signIn(user: user, token: accessToken)
+            self.signIn(user: user, token: accessToken, refreshToken: refreshTokenString)
         } catch let asError as ASAuthorizationError where asError.code == .canceled {
             self.state = .unauthenticated
         } catch {
