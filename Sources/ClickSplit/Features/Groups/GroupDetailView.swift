@@ -11,9 +11,14 @@ public struct GroupDetailView: View {
     @State private var showSettingsSheet = false
     @State private var selectedExpense: SplitExpense?
 
-    public init(group: SplitGroup) {
+    public init(group: SplitGroup, initialSnapshot: GroupDetailSnapshot? = nil) {
         self.group = group
-        self._viewModel = State(initialValue: GroupDetailViewModel(group: group))
+        self._viewModel = State(
+            initialValue: GroupDetailViewModel(
+                group: group,
+                initialSnapshot: initialSnapshot
+            )
+        )
     }
 
     private var currentUserId: UUID? {

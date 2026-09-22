@@ -124,7 +124,10 @@ public struct DashboardView: View {
                     }
                 }
                 .navigationDestination(for: SplitGroup.self) { group in
-                    GroupDetailView(group: group)
+                    GroupDetailView(
+                        group: group,
+                        initialSnapshot: viewModel.groupDetailSnapshots[group.id]
+                    )
                 }
 
                 // Floating Liquid Glass Bottom Navigation Bar

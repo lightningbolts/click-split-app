@@ -32,6 +32,22 @@ final class PaymentRailAndCSVTests: XCTestCase {
         XCTAssertTrue(csv.contains("Even"))
     }
 
+    func testSettlementMethodDecodesWebAndLegacyValues() throws {
+        let decoder = JSONDecoder()
+
+        func decode(_ value: String) throws -> SettlementMethod {
+            try decoder.decode(SettlementMethod.self, from: Data("\"\(value)\"".utf8))
+        }
+
+        XCTAssertEqual(try decode("cashapp"), .cashApp)
+        XCTAssertEqual(try decode("cash_app"), .cashApp)
+        XCTAssertEqual(try decode("applepay"), .other)
+        XCTAssertEqual(try decode("googlepay"), .other)
+        XCTAssertEqual(try decode("manual"), .other)
+        XCTAssertEqual(try decode("future_payment_rail"), .other)
+        XCTAssertEqual(SettlementMethod.cashApp.rawValue, "cashapp")
+    }
+
     func testPaymentRailURLGeneration() {
         // Venmo
         let venmoURL = PaymentRailLauncher.generatePaymentURL(

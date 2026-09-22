@@ -27,7 +27,7 @@ public enum ExpenseSource: String, Codable, Sendable {
 public enum SettlementMethod: String, Codable, CaseIterable, Sendable, CustomStringConvertible {
     case venmo = "venmo"
     case paypal = "paypal"
-    case cashApp = "cash_app"
+    case cashApp = "cashapp"
     case zelle = "zelle"
     case cash = "cash"
     case other = "other"
@@ -41,6 +41,35 @@ public enum SettlementMethod: String, Codable, CaseIterable, Sendable, CustomStr
         case .cash: return "Cash"
         case .other: return "Other"
         }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self).lowercased()
+
+        switch value {
+        case "venmo":
+            self = .venmo
+        case "paypal":
+            self = .paypal
+        case "cashapp", "cash_app":
+            self = .cashApp
+        case "zelle":
+            self = .zelle
+        case "cash":
+            self = .cash
+        case "other", "manual", "applepay", "apple_pay", "googlepay", "google_pay":
+            self = .other
+        default:
+            // Settlement method is non-financial metadata. Unknown future web
+            // rails must not make an otherwise valid settlement row undecodable.
+            self = .other
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
