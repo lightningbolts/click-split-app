@@ -23,6 +23,13 @@ public struct ClickSplitRootView: View {
         .environment(\.appEnvironment, environment)
         .environment(\.appRouter, router)
         .preferredColorScheme(theme == "light" ? .light : (theme == "dark" ? .dark : nil))
+        .onChange(of: environment.sessionStore.authToken) { _, authToken in
+            if let authToken, !authToken.isEmpty {
+                environment.realtimeClient?.reconnect(authToken: authToken)
+            } else {
+                environment.realtimeClient?.disconnect()
+            }
+        }
         .onOpenURL { url in
             router.handleIncomingURL(url)
         }
