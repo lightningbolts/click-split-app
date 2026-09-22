@@ -197,6 +197,11 @@ public struct GroupDetailView: View {
                 group: group,
                 members: viewModel.members,
                 initialShares: viewModel.memberShares[expense.id] ?? [],
+                onExpenseUpdated: {
+                    Task {
+                        await viewModel.loadGroupData(environment: environment)
+                    }
+                },
                 onExpenseDeleted: {
                     Task {
                         await viewModel.loadGroupData(environment: environment)
