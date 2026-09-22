@@ -82,6 +82,44 @@ public actor MockGroupRepository: GroupRepositoryProtocol {
         }
     }
 
+    public func addGroupMember(groupId: UUID, email: String) async throws {
+        guard groups.contains(where: { $0.id == groupId }) else { return }
+        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard normalized.contains("@") else {
+            throw GroupMemberManagementError.invalidEmail
+        }
+
+        var list = members[groupId] ?? []
+        if list.contains(where: { $0.profile?.email?.lowercased() == normalized }) {
+            throw GroupMemberManagementError.alreadyMember
+        }
+
+        let userId = UUID()
+        list.append(
+            SplitGroupMember(
+                groupId: groupId,
+                userId: userId,
+                profile: SplitUserProfile(id: userId, email: normalized)
+            )
+        )
+        members[groupId] = list
+    }
+
+    public func removeGroupMember(groupId: UUID, userId: UUID) async throws {
+        guard let group = groups.first(where: { $0.id == groupId }) else { return }
+        guard userId != group.createdBy else {
+            throw GroupMemberManagementError.creatorCannotBeRemoved
+        }
+        guard members[groupId]?.contains(where: { $0.userId == userId }) == true else {
+            throw GroupMemberManagementError.memberNotFound
+        }
+        let balance = balances["\(groupId)-\(userId)"] ?? 0
+        guard balance > Decimal(string: "-0.01")! && balance < Decimal(string: "0.01")! else {
+            throw GroupMemberManagementError.unsettledBalance
+        }
+        members[groupId]?.removeAll { $0.userId == userId }
+    }
+
     public func leaveGroup(groupId: UUID, userId: UUID) async throws {
         members[groupId]?.removeAll { $0.userId == userId }
     }

@@ -106,6 +106,90 @@ public final class SupabaseGroupRepository: GroupRepositoryProtocol, @unchecked 
         )
     }
 
+    public func addGroupMember(groupId: UUID, email: String) async throws {
+        _ = try await requireGroupCreator(groupId: groupId)
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard normalizedEmail.contains("@"), normalizedEmail.count <= 254 else {
+            throw GroupMemberManagementError.invalidEmail
+        }
+
+        let profiles: [PublicUserRow] = try await client.fetch(
+            table: "users",
+            select: "id,name,image,email",
+            filters: [URLQueryItem(name: "email", value: "eq.\(normalizedEmail)")],
+            authToken: token
+        )
+        guard let profile = profiles.first else {
+            throw GroupMemberManagementError.userNotFound
+        }
+
+        let existing: [SplitGroupMember] = try await client.fetch(
+            table: "split_group_members",
+            filters: [
+                URLQueryItem(name: "group_id", value: "eq.\(groupId.uuidString)"),
+                URLQueryItem(name: "user_id", value: "eq.\(profile.id.uuidString)")
+            ],
+            authToken: token
+        )
+        guard existing.isEmpty else {
+            throw GroupMemberManagementError.alreadyMember
+        }
+
+        struct InsertMemberPayload: Encodable {
+            let group_id: UUID
+            let user_id: UUID
+        }
+        let payload = InsertMemberPayload(group_id: groupId, user_id: profile.id)
+        let _: [SplitGroupMember] = try await client.insert(
+            table: "split_group_members",
+            value: payload,
+            authToken: token
+        )
+    }
+
+    public func removeGroupMember(groupId: UUID, userId: UUID) async throws {
+        let currentUserId = try await requireGroupCreator(groupId: groupId)
+        guard userId != currentUserId else {
+            throw GroupMemberManagementError.creatorCannotBeRemoved
+        }
+
+        let existing: [SplitGroupMember] = try await client.fetch(
+            table: "split_group_members",
+            filters: [
+                URLQueryItem(name: "group_id", value: "eq.\(groupId.uuidString)"),
+                URLQueryItem(name: "user_id", value: "eq.\(userId.uuidString)")
+            ],
+            authToken: token
+        )
+        guard !existing.isEmpty else {
+            throw GroupMemberManagementError.memberNotFound
+        }
+
+        let balance = try await fetchGroupBalance(groupId: groupId, userId: userId)
+        guard balance > Decimal(string: "-0.01")! && balance < Decimal(string: "0.01")! else {
+            throw GroupMemberManagementError.unsettledBalance
+        }
+
+        try await client.delete(
+            table: "split_group_members",
+            filters: [
+                URLQueryItem(name: "group_id", value: "eq.\(groupId.uuidString)"),
+                URLQueryItem(name: "user_id", value: "eq.\(userId.uuidString)")
+            ],
+            authToken: token
+        )
+    }
+
+    private func requireGroupCreator(groupId: UUID) async throws -> UUID {
+        guard let currentUserId = sessionStore.currentUser?.id else {
+            throw SupabaseClient.SupabaseError.unauthenticated
+        }
+        guard let group = try await fetchGroup(id: groupId), group.createdBy == currentUserId else {
+            throw GroupMemberManagementError.notCreator
+        }
+        return currentUserId
+    }
+
     public func leaveGroup(groupId: UUID, userId: UUID) async throws {
         try await client.delete(
             table: "split_group_members",
