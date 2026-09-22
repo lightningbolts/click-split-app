@@ -135,12 +135,6 @@ public final class SupabaseGroupRepository: GroupRepositoryProtocol, @unchecked 
             throw GroupMemberManagementError.alreadyMember
         }
 
-        // Keep the creator check explicit in client code for a clear UX error.
-        // RLS independently enforces the same authorization at the database.
-        guard currentUserId != profile.id || existing.isEmpty else {
-            throw GroupMemberManagementError.alreadyMember
-        }
-
         struct InsertMemberPayload: Encodable {
             let group_id: UUID
             let user_id: UUID
