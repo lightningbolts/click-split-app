@@ -62,12 +62,16 @@ public struct ReceiptScannerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Receipt Scanner")
+            .navigationTitle(recognizedItems != nil ? "Review Receipt" : "Receipt Scanner")
             .splitInlineTitleDisplayMode()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+                    Button(recognizedItems != nil ? "Back" : "Cancel") {
+                        if recognizedItems != nil {
+                            recognizedItems = nil
+                        } else {
+                            dismiss()
+                        }
                     }
                     .foregroundColor(SplitColors.ink)
                 }

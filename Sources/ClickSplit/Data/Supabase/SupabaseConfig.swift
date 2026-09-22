@@ -9,5 +9,5 @@ public enum SupabaseConfig {
     public static let defaultAnonKey = "sb_publishable_jJ7PIx7o_wIZcs8GNho4Kw_1TFn6Zcs"
 
     /// Server API base URL for receipt scanning and protected operations
-    public static let defaultServerBaseURL = URL(string: "https://localhost:3001")!
+    public static let defaultServerBaseURL = URL(string: "https://split.joinclick.co")!
 }

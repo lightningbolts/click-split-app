@@ -27,38 +27,38 @@ public struct ReceiptReviewView: View {
     }
 
     public var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Header Total Card
-                HStack {
-                    VStack(alignment: .leading, spacing: SplitSpacing.xxs) {
-                        Text("TOTAL RECOGNIZED")
-                            .font(SplitTypography.badge)
-                            .foregroundColor(SplitColors.inkSoft)
+        VStack(spacing: 0) {
+            // Header Total Card
+            HStack {
+                VStack(alignment: .leading, spacing: SplitSpacing.xxs) {
+                    Text("TOTAL RECOGNIZED")
+                        .font(SplitTypography.badge)
+                        .foregroundColor(SplitColors.inkSoft)
 
-                        SplitAmount(totalCalculated, style: .large, color: SplitColors.ink)
-                    }
-
-                    Spacer()
-
-                    Text("\(items.count) items")
-                        .font(SplitTypography.buttonSmall)
-                        .padding(.horizontal, SplitSpacing.md)
-                        .padding(.vertical, SplitSpacing.xs)
-                        .background(SplitColors.paper)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
-                                .stroke(SplitColors.ink, lineWidth: 1.5)
-                        )
+                    SplitAmount(totalCalculated, style: .large, color: SplitColors.ink)
                 }
-                .padding(SplitSpacing.lg)
-                .background(SplitColors.paperDim)
-                .overlay(
-                    Rectangle()
-                        .frame(height: SplitSpacing.borderWidth)
-                        .foregroundColor(SplitColors.ink),
-                    alignment: .bottom
-                )
+
+                Spacer()
+
+                Text("\(items.count) items")
+                    .font(SplitTypography.buttonSmall)
+                    .foregroundColor(SplitColors.ink)
+                    .padding(.horizontal, SplitSpacing.md)
+                    .padding(.vertical, SplitSpacing.xs)
+                    .background(SplitColors.paper)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                            .stroke(SplitColors.ink, lineWidth: 1.5)
+                    )
+            }
+            .padding(SplitSpacing.lg)
+            .background(SplitColors.paperDim)
+            .overlay(
+                Rectangle()
+                    .frame(height: SplitSpacing.borderWidth)
+                    .foregroundColor(SplitColors.ink),
+                alignment: .bottom
+            )
 
                 // Item List
                 ScrollView {
@@ -104,6 +104,7 @@ public struct ReceiptReviewView: View {
 
                                     TextField("0.00", value: $item.price, format: .number)
                                         .font(SplitTypography.button)
+                                        .foregroundColor(SplitColors.ink)
                                         .frame(width: 60)
                                         .multilineTextAlignment(.trailing)
                                         .splitMonospacedDigits()
@@ -162,16 +163,6 @@ public struct ReceiptReviewView: View {
                 )
             }
             .background(SplitColors.paper.ignoresSafeArea())
-            .navigationTitle("Review Receipt")
-            .splitInlineTitleDisplayMode()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(SplitColors.ink)
-                }
-            }
             .sheet(isPresented: $showAssigneeSheet) {
                 if let targetItem = selectedItemForAssignment {
                     AssigneePickerSheet(
@@ -188,7 +179,6 @@ public struct ReceiptReviewView: View {
                 }
             }
         }
-    }
 
     private func assigneeName(for userId: UUID?) -> String {
         guard let userId else { return "Everyone (Split evenly)" }

@@ -5,6 +5,7 @@ public struct UserProfileSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appEnvironment) private var environment
 
+    @AppStorage("click_split_theme") private var theme: String = "system"
     @State private var showSignOutConfirmation = false
 
     public init() {}
@@ -48,6 +49,26 @@ public struct UserProfileSheet: View {
                     }
                 }
                 .padding(.top, SplitSpacing.lg)
+
+                // Appearance Setting Card
+                VStack(alignment: .leading, spacing: SplitSpacing.sm) {
+                    Text("APPEARANCE")
+                        .font(SplitTypography.badge)
+                        .foregroundColor(SplitColors.inkSoft)
+                        .tracking(1)
+
+                    HStack(spacing: SplitSpacing.xs) {
+                        themeButton(title: "System", mode: "system", icon: "circle.righthalf.filled")
+                        themeButton(title: "Light", mode: "light", icon: "sun.max.fill")
+                        themeButton(title: "Dark", mode: "dark", icon: "moon.fill")
+                    }
+                    .padding(SplitSpacing.xs)
+                    .background(SplitColors.paperDim)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius)
+                            .stroke(SplitColors.ink, lineWidth: 1.5)
+                    )
+                }
 
                 // Account Information Card
                 VStack(alignment: .leading, spacing: SplitSpacing.sm) {
@@ -218,5 +239,29 @@ public struct UserProfileSheet: View {
                 await environment.sessionStore.refreshUserProfile()
             }
         }
+    }
+
+    private func themeButton(title: String, mode: String, icon: String) -> some View {
+        let isSelected = theme == mode
+        return Button {
+            SplitHaptics.selection()
+            theme = mode
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .bold))
+                Text(title)
+                    .font(SplitTypography.buttonSmall)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, SplitSpacing.xs)
+            .background(isSelected ? SplitColors.paper : Color.clear)
+            .foregroundColor(isSelected ? SplitColors.ink : SplitColors.inkSoft)
+            .overlay(
+                RoundedRectangle(cornerRadius: SplitSpacing.cornerRadius - 1)
+                    .stroke(isSelected ? SplitColors.ink : Color.clear, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

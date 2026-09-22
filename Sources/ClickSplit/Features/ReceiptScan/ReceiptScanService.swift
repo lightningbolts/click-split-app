@@ -95,7 +95,7 @@ public final class ReceiptScanService: Sendable {
     }
     #endif
 
-    /// Sends the compressed receipt image to the protected backend extraction service.
+    /// Sends the compressed receipt image to the backend extraction service, falling back to on-device Vision OCR parsing.
     public func extractReceipt(
         imageData: Data,
         authToken: String?
@@ -118,20 +118,121 @@ public final class ReceiptScanService: Sendable {
 
         do {
             let (data, response) = try await session.data(for: request)
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                // If backend is unavailable or not running locally, fallback to smart sample parsing
-                return ReceiptScanService.mockExtractionFallback()
+            if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) {
+                let decoder = JSONDecoder()
+                let result = try decoder.decode(ReceiptExtractionResult.self, from: data)
+                if !result.items.isEmpty {
+                    return result
+                }
             }
-
-            let decoder = JSONDecoder()
-            return try decoder.decode(ReceiptExtractionResult.self, from: data)
         } catch {
-            // Local fallback for offline simulator testing
-            return ReceiptScanService.mockExtractionFallback()
+            // Backend unavailable or failed; seamlessly fall through to on-device Vision OCR
         }
+
+        #if canImport(UIKit) && canImport(Vision)
+        // Perform on-device Apple Vision OCR and intelligent line item parsing
+        let ocrLines = try await Self.performLocalOCR(on: imageData)
+        let parsedResult = Self.parseReceiptLines(ocrLines)
+        if !parsedResult.items.isEmpty {
+            return parsedResult
+        }
+        #endif
+
+        throw ReceiptScanError.noItemsFound
     }
 
-    /// Realistic parsed items for offline testing or when backend LLM is unreachable.
+    /// Intelligent on-device receipt parser extracting line items and prices from OCR text lines.
+    public static func parseReceiptLines(_ lines: [String]) -> ReceiptExtractionResult {
+        var items: [ReceiptExtractionResult.ScannedItem] = []
+        var detectedTotal: Decimal?
+
+        // Common receipt price regex: matches e.g. 5.49, $12.50, 8.99 S, etc.
+        let pricePattern = try? NSRegularExpression(
+            pattern: #"(?:^|\s)\$?([0-9]+\.[0-9]{2})(?:\s*[A-Za-z])?$"#
+        )
+        // Pattern to match all prices in a line (for "Price 10.99 You Pay 8.99" formats)
+        let anyPricePattern = try? NSRegularExpression(
+            pattern: #"\$?([0-9]+\.[0-9]{2})"#
+        )
+
+        let skipKeywords = [
+            "SAFEWAY", "STORE", "TEL", "PHONE", "CASHIER", "MEMBER SAVINGS",
+            "SAVINGS", "POINTS", "CARD #", "AUTH", "AID", "TVR", "VISA",
+            "MASTERCARD", "CHANGE", "NOW HIRING", "THANK YOU", "QUESTIONS CALL",
+            "VISIT", "TOTAL NUMBER OF ITEMS", "TAX", "SUBTOTAL"
+        ]
+
+        let totalKeywords = ["BALANCE", "TOTAL", "AMOUNT DUE", "AMOUNT PAID", "TOTAL OWED"]
+
+        for rawLine in lines {
+            let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !line.isEmpty else { continue }
+            let upper = line.uppercased()
+
+            // Check if this is a total line
+            if totalKeywords.contains(where: { upper.contains($0) }) {
+                if let anyPricePattern {
+                    let matches = anyPricePattern.matches(in: line, range: NSRange(line.startIndex..., in: line))
+                    if let lastMatch = matches.last,
+                       let priceRange = Range(lastMatch.range(at: 1), in: line),
+                       let priceVal = Decimal(string: String(line[priceRange])) {
+                        detectedTotal = priceVal
+                    }
+                }
+                continue
+            }
+
+            // Skip common metadata / non-item lines
+            if skipKeywords.contains(where: { upper.contains($0) }) {
+                continue
+            }
+
+            // Check if line contains a price
+            if let anyPricePattern {
+                let matches = anyPricePattern.matches(in: line, range: NSRange(line.startIndex..., in: line))
+                guard let lastMatch = matches.last,
+                      let priceRange = Range(lastMatch.range(at: 1), in: line),
+                      let price = Decimal(string: String(line[priceRange])),
+                      price > 0 else {
+                    continue
+                }
+
+                // Everything before the price is the item description
+                let matchStart = Range(lastMatch.range, in: line)!.lowerBound
+                var label = String(line[..<matchStart]).trimmingCharacters(in: .whitespacesAndNewlines)
+
+                // Strip leading barcodes/SKUs (e.g., "2040251667 DORITOS TRTLA CHPS" -> "DORITOS TRTLA CHPS")
+                if let firstWord = label.split(separator: " ").first,
+                   firstWord.count >= 4,
+                   firstWord.allSatisfy(\.isNumber) {
+                    label = label.dropFirst(firstWord.count).trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+
+                // Strip trailing noise like original price in "DORITOS 5.49" if two prices were present
+                if let labelMatches = anyPricePattern.matches(in: label, range: NSRange(label.startIndex..., in: label)).last,
+                   let labelMatchRange = Range(labelMatches.range, in: label) {
+                    label = String(label[..<labelMatchRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+
+                // Remove unwanted prefixes like "WT 0.7 lb @"
+                if label.uppercased().hasPrefix("WT ") {
+                    continue
+                }
+
+                // Clean up any remaining trailing punctuation/noise
+                label = label.trimmingCharacters(in: CharacterSet(charactersIn: "-:@$# \t"))
+
+                if !label.isEmpty && label.count >= 2 {
+                    items.append(.init(label: label, price: price))
+                }
+            }
+        }
+
+        let sum = items.reduce(Decimal.zero) { $0 + $1.price }
+        return ReceiptExtractionResult(items: items, detectedTotal: detectedTotal ?? (sum > 0 ? sum : nil))
+    }
+
+    /// Realistic parsed items for offline testing or when explicitly triggered by the sample button.
     public static func mockExtractionFallback() -> ReceiptExtractionResult {
         let items: [ReceiptExtractionResult.ScannedItem] = [
             .init(label: "Burger with Cheese", price: Decimal(string: "16.50")!),
@@ -140,5 +241,19 @@ public final class ReceiptScanService: Sendable {
             .init(label: "Sparkling Water", price: Decimal(string: "4.00")!)
         ]
         return ReceiptExtractionResult(items: items, detectedTotal: Decimal(string: "38.00")!)
+    }
+}
+
+public enum ReceiptScanError: LocalizedError {
+    case noItemsFound
+    case backendError(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .noItemsFound:
+            return "Could not recognize any items from the receipt. Please ensure the image is clear and well-lit."
+        case .backendError(let msg):
+            return msg
+        }
     }
 }

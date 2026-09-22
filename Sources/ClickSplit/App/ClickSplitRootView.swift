@@ -3,6 +3,7 @@ import AuthenticationServices
 
 /// Root view of Click Split handling session routing and root environment injection.
 public struct ClickSplitRootView: View {
+    @AppStorage("click_split_theme") private var theme: String = "system"
     @State private var environment: AppEnvironment
     @State private var router = AppRouter()
 
@@ -21,6 +22,7 @@ public struct ClickSplitRootView: View {
         }
         .environment(\.appEnvironment, environment)
         .environment(\.appRouter, router)
+        .preferredColorScheme(theme == "light" ? .light : (theme == "dark" ? .dark : nil))
         .onOpenURL { url in
             router.handleIncomingURL(url)
         }
