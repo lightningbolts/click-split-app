@@ -253,7 +253,8 @@ public final class SupabaseExpenseRepository: ExpenseRepositoryProtocol, @unchec
             }
             calculatedShares = try SplitCalculator.calculateByItemSplit(
                 items: domainItems,
-                allParticipantUserIds: participantIds
+                allParticipantUserIds: participantIds,
+                total: draft.total
             )
         }
 
