@@ -107,7 +107,7 @@ public final class SupabaseGroupRepository: GroupRepositoryProtocol, @unchecked 
     }
 
     public func addGroupMember(groupId: UUID, email: String) async throws {
-        let currentUserId = try await requireGroupCreator(groupId: groupId)
+        _ = try await requireGroupCreator(groupId: groupId)
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard normalizedEmail.contains("@"), normalizedEmail.count <= 254 else {
             throw GroupMemberManagementError.invalidEmail
