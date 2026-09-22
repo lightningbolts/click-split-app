@@ -44,6 +44,12 @@ public final class SupabaseRealtimeClient: @unchecked Sendable {
         startHeartbeat()
     }
 
+    /// Reconnects with the latest authenticated token after sign-in/session restoration.
+    public func reconnect(authToken: String?) {
+        disconnect()
+        connect(authToken: authToken)
+    }
+
     /// Disconnects the realtime socket.
     public func disconnect() {
         heartbeatTimer?.cancel()
@@ -63,6 +69,8 @@ public final class SupabaseRealtimeClient: @unchecked Sendable {
                     "broadcast": ["self": true],
                     "postgres_changes": [
                         ["event": "*", "schema": "public", "table": "split_expenses"],
+                        ["event": "*", "schema": "public", "table": "split_expense_items"],
+                        ["event": "*", "schema": "public", "table": "split_expense_shares"],
                         ["event": "*", "schema": "public", "table": "split_settlements"],
                         ["event": "*", "schema": "public", "table": "split_group_members"]
                     ]
@@ -106,11 +114,16 @@ public final class SupabaseRealtimeClient: @unchecked Sendable {
     }
 
     private func handleIncomingMessage(_ text: String) {
-        // Post notification to inform views to refresh
-        if text.contains("split_expenses") || text.contains("split_settlements") || text.contains("split_group_members") {
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: SplitRealtimeNotification.dataChanged, object: nil)
-            }
+        guard
+            let data = text.data(using: .utf8),
+            let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            payload["event"] as? String == "postgres_changes"
+        else {
+            return
+        }
+
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: SplitRealtimeNotification.dataChanged, object: nil)
         }
     }
 
