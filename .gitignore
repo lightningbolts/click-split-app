@@ -1,0 +1,18 @@
+# Xcode / Swift
+.build/
+.swiftpm/
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# OS
+.DS_Store
+.Trash/
+
+# Environment / Local Secrets
+.env
+.env.local
