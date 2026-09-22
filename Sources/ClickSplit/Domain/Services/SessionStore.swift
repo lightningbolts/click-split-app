@@ -141,9 +141,73 @@ public final class SessionStore: @unchecked Sendable {
                 fullName: response.user.fullName,
                 avatarUrl: response.user.avatarUrl
             )
-            self.signIn(user: user, token: response.access_token)
+            self.signIn(user: user, token: response.access_token ?? "")
         } catch {
             self.state = .error(error.localizedDescription)
+        }
+    }
+
+    /// Authenticates using email and password against Supabase Auth.
+    @MainActor
+    public func signInWithPassword(
+        email: String,
+        password: String,
+        client: SupabaseClient = SupabaseClient()
+    ) async {
+        self.state = .authenticating
+        do {
+            let response = try await client.signInWithPassword(
+                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                password: password
+            )
+            guard let token = response.access_token else {
+                self.state = .error("Authentication succeeded but no access token was returned.")
+                return
+            }
+            let user = SplitUserProfile(
+                id: response.user.id,
+                email: response.user.email,
+                fullName: response.user.fullName,
+                avatarUrl: response.user.avatarUrl
+            )
+            self.signIn(user: user, token: token)
+        } catch {
+            self.state = .error(error.localizedDescription)
+        }
+    }
+
+    /// Registers a new user with email, password, and full name.
+    /// Returns true if an immediate session was established, or false if email confirmation is required.
+    @MainActor
+    public func signUpWithPassword(
+        email: String,
+        password: String,
+        fullName: String,
+        client: SupabaseClient = SupabaseClient()
+    ) async throws -> Bool {
+        self.state = .authenticating
+        do {
+            let response = try await client.signUpWithPassword(
+                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                password: password,
+                fullName: fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            if let token = response.access_token {
+                let user = SplitUserProfile(
+                    id: response.user.id,
+                    email: response.user.email,
+                    fullName: fullName,
+                    avatarUrl: response.user.avatarUrl
+                )
+                self.signIn(user: user, token: token)
+                return true
+            } else {
+                self.state = .unauthenticated
+                return false
+            }
+        } catch {
+            self.state = .error(error.localizedDescription)
+            throw error
         }
     }
 

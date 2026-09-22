@@ -252,12 +252,67 @@ public final class SupabaseClient: Sendable {
         return try decoder.decode(AuthResponse.self, from: data)
     }
 
+    /// Signs in with an existing email and password.
+    public func signInWithPassword(email: String, password: String) async throws -> AuthResponse {
+        let endpoint = supabaseURL.appendingPathComponent("auth/v1/token")
+        var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "grant_type", value: "password")]
+        guard let url = components?.url else { throw SupabaseError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        for (key, value) in makeHeaders(authToken: nil) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        let body: [String: Any] = [
+            "email": email,
+            "password": password
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(AuthResponse.self, from: data)
+    }
+
+    /// Creates a new user account with email, password, and optional full name.
+    public func signUpWithPassword(email: String, password: String, fullName: String? = nil) async throws -> AuthResponse {
+        let endpoint = supabaseURL.appendingPathComponent("auth/v1/signup")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        for (key, value) in makeHeaders(authToken: nil) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        var body: [String: Any] = [
+            "email": email,
+            "password": password
+        ]
+        if let fullName, !fullName.isEmpty {
+            body["data"] = ["full_name": fullName]
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(AuthResponse.self, from: data)
+    }
 
     // ────────────────── Response Validator ──────────────────
 
     private func validateResponse(_ response: URLResponse, data: Data) throws {
         guard let httpResponse = response as? HTTPURLResponse else { return }
         guard (200...299).contains(httpResponse.statusCode) else {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                if let msg = json["error_description"] as? String ?? json["msg"] as? String ?? json["message"] as? String {
+                    throw SupabaseError.httpError(statusCode: httpResponse.statusCode, message: msg)
+                }
+            }
             let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw SupabaseError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
         }
@@ -266,10 +321,10 @@ public final class SupabaseClient: Sendable {
 
 /// Supabase Auth response container.
 public struct AuthResponse: Codable, Sendable {
-    public let access_token: String
-    public let token_type: String
-    public let expires_in: Int
-    public let refresh_token: String
+    public let access_token: String?
+    public let token_type: String?
+    public let expires_in: Int?
+    public let refresh_token: String?
     public let user: AuthUser
 }
 
