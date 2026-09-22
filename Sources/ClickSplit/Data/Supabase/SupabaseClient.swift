@@ -295,6 +295,38 @@ public struct AuthUser: Codable, Sendable {
     }
 }
 
+/// Public profile row matching the `public.users` table in Click.
+public struct PublicUserRow: Codable, Sendable {
+    public let id: UUID
+    public let name: String?
+    public let image: String?
+    public let email: String?
+
+    public init(id: UUID, name: String? = nil, image: String? = nil, email: String? = nil) {
+        self.id = id
+        self.name = name
+        self.image = image
+        self.email = email
+    }
+}
+
+extension SupabaseClient {
+    /// Fetches a user's public profile from the `public.users` table.
+    public func fetchPublicProfile(userId: UUID, authToken: String? = nil) async -> PublicUserRow? {
+        do {
+            let rows: [PublicUserRow] = try await fetch(
+                table: "users",
+                select: "id,name,image,email",
+                filters: [URLQueryItem(name: "id", value: "eq.\(userId.uuidString.lowercased())")],
+                authToken: authToken
+            )
+            return rows.first
+        } catch {
+            return nil
+        }
+    }
+}
+
 public enum AnyCodableValue: Codable, Sendable {
     case string(String)
     case bool(Bool)

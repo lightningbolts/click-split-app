@@ -13,14 +13,20 @@ public struct LiquidGlassNavBar: View {
     public var onAddGroup: () -> Void
     public var onScanReceipt: () -> Void
     public var onOpenProfile: () -> Void
+    public var avatarUrl: String?
+    public var userName: String?
 
     public init(
         selectedTab: Binding<SplitTab>,
+        avatarUrl: String? = nil,
+        userName: String? = nil,
         onAddGroup: @escaping () -> Void,
         onScanReceipt: @escaping () -> Void,
         onOpenProfile: @escaping () -> Void
     ) {
         self._selectedTab = selectedTab
+        self.avatarUrl = avatarUrl
+        self.userName = userName
         self.onAddGroup = onAddGroup
         self.onScanReceipt = onScanReceipt
         self.onOpenProfile = onOpenProfile
@@ -89,13 +95,37 @@ public struct LiquidGlassNavBar: View {
             }
 
             // Profile Action
-            actionItem(
-                title: "Profile",
-                icon: "person.crop.circle.fill"
-            ) {
+            Button {
                 SplitHaptics.impact(.light)
                 onOpenProfile()
+            } label: {
+                VStack(spacing: 3) {
+                    if let avatarUrl, !avatarUrl.isEmpty {
+                        UserAvatarView(
+                            avatarUrl: avatarUrl,
+                            name: userName,
+                            size: 20,
+                            shape: .circle,
+                            showBorder: true,
+                            showShadow: false
+                        )
+                        .frame(height: 22)
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(SplitColors.inkSoft)
+                            .frame(height: 22)
+                    }
+
+                    Text("Profile")
+                        .font(SplitTypography.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(SplitColors.grey)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)

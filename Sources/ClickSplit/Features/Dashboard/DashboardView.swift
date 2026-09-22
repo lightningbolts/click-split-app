@@ -66,15 +66,14 @@ public struct DashboardView: View {
                             SplitHaptics.impact(.light)
                             showProfileSheet = true
                         } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(SplitColors.paperDim)
-                                    .overlay(Circle().stroke(SplitColors.ink, lineWidth: 1.5))
-                                Image(systemName: "person.fill")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(SplitColors.ink)
-                            }
-                            .frame(width: 32, height: 32)
+                            UserAvatarView(
+                                avatarUrl: environment.sessionStore.currentUser?.avatarUrl,
+                                name: environment.sessionStore.currentUser?.fullName,
+                                size: 32,
+                                shape: .circle,
+                                showBorder: true,
+                                showShadow: false
+                            )
                         }
                     }
 
@@ -106,6 +105,8 @@ public struct DashboardView: View {
                 // Floating Liquid Glass Bottom Navigation Bar
                 LiquidGlassNavBar(
                     selectedTab: $selectedTab,
+                    avatarUrl: environment.sessionStore.currentUser?.avatarUrl,
+                    userName: environment.sessionStore.currentUser?.fullName,
                     onAddGroup: {
                         showCreateGroupSheet = true
                     },
@@ -157,6 +158,7 @@ public struct DashboardView: View {
             }
             .task {
                 await viewModel.loadData(environment: environment)
+                await environment.sessionStore.refreshUserProfile()
             }
             .refreshable {
                 await viewModel.loadData(environment: environment)

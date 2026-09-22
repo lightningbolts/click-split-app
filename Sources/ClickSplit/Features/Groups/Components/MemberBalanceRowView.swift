@@ -20,19 +20,30 @@ public struct MemberBalanceRowView: View {
 
     public var body: some View {
         HStack(spacing: SplitSpacing.md) {
-            // Circle status avatar
-            Circle()
-                .fill(balanceColor.opacity(0.15))
-                .overlay(
-                    Circle()
-                        .stroke(balanceColor, lineWidth: 2)
+            if let avatar = member.profile?.avatarUrl, !avatar.isEmpty {
+                UserAvatarView(
+                    avatarUrl: avatar,
+                    name: member.profile?.displayName,
+                    size: 28,
+                    shape: .circle,
+                    showBorder: true,
+                    showShadow: false
                 )
-                .frame(width: 28, height: 28)
-                .overlay(
-                    Text(String(member.profile?.displayName.prefix(1) ?? "M"))
-                        .font(SplitTypography.badge)
-                        .foregroundColor(balanceColor)
-                )
+            } else {
+                // Circle status avatar
+                Circle()
+                    .fill(balanceColor.opacity(0.15))
+                    .overlay(
+                        Circle()
+                            .stroke(balanceColor, lineWidth: 2)
+                    )
+                    .frame(width: 28, height: 28)
+                    .overlay(
+                        Text(String(member.profile?.displayName.prefix(1) ?? "M"))
+                            .font(SplitTypography.badge)
+                            .foregroundColor(balanceColor)
+                    )
+            }
 
             Text(isCurrentUser ? "\(member.profile?.displayName ?? "You") (You)" : (member.profile?.displayName ?? "Member"))
                 .font(SplitTypography.body)

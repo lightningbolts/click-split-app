@@ -182,12 +182,13 @@ public struct AuthenticationView: View {
     }
 
     private func signInDemoAccount() {
-        // Shared test identity matching Click dev user
-        let demoUserId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        // Shared test identity matching real Click user
+        let demoUserId = UUID(uuidString: "aa3c293c-4066-4fae-8639-30b7fcd1a5c9")!
         let user = SplitUserProfile(
             id: demoUserId,
-            email: "kairui@clickplatforms.com",
-            fullName: "Kairui Song"
+            email: "timberlake2025@gmail.com",
+            fullName: "Kairui Cheng",
+            avatarUrl: "https://lrgcwnmcscimkmslihxp.supabase.co/storage/v1/object/public/avatars/aa3c293c-4066-4fae-8639-30b7fcd1a5c9/1776481280174.jpg"
         )
         environment.sessionStore.signIn(user: user, token: SupabaseConfig.defaultAnonKey)
     }

@@ -32,12 +32,12 @@ public final class SessionStore: @unchecked Sendable {
     }
 
     /// Sets mock session for preview and testing purposes.
-    public static func preview(userId: UUID = UUID()) -> SessionStore {
+    public static func preview(userId: UUID = UUID(uuidString: "aa3c293c-4066-4fae-8639-30b7fcd1a5c9")!) -> SessionStore {
         let mockUser = SplitUserProfile(
             id: userId,
-            email: "kairui@example.com",
-            fullName: "Kairui Song",
-            avatarUrl: nil
+            email: "timberlake2025@gmail.com",
+            fullName: "Kairui Cheng",
+            avatarUrl: "https://lrgcwnmcscimkmslihxp.supabase.co/storage/v1/object/public/avatars/aa3c293c-4066-4fae-8639-30b7fcd1a5c9/1776481280174.jpg"
         )
         return SessionStore(
             state: .authenticated,
@@ -54,6 +54,9 @@ public final class SessionStore: @unchecked Sendable {
             self.authToken = token
             self.currentUser = SplitUserProfile(id: userId, email: nil, fullName: "Signed In User")
             self.state = .authenticated
+            Task { @MainActor in
+                await self.refreshUserProfile()
+            }
         } else {
             self.state = .unauthenticated
         }
@@ -65,6 +68,53 @@ public final class SessionStore: @unchecked Sendable {
         self.state = .authenticated
         KeychainHelper.saveToken(token)
         KeychainHelper.saveUserId(user.id)
+        Task { @MainActor in
+            await self.refreshUserProfile()
+        }
+    }
+
+    /// Refreshes the active user's profile from the Click `public.users` table or Supabase auth,
+    /// ensuring the authentic Click avatar and display name are displayed across the app.
+    @MainActor
+    public func refreshUserProfile(client: SupabaseClient = SupabaseClient()) async {
+        guard let userId = currentUser?.id ?? KeychainHelper.loadUserId() else { return }
+        let token = authToken ?? KeychainHelper.loadToken()
+
+        // 1. Fetch from shared Click public.users table
+        if let row = await client.fetchPublicProfile(userId: userId, authToken: token) {
+            var updated = currentUser ?? SplitUserProfile(id: userId, email: row.email, fullName: row.name)
+            if let img = row.image, !img.isEmpty {
+                updated.avatarUrl = img
+            }
+            if let name = row.name, !name.isEmpty {
+                updated.fullName = name
+            }
+            if let email = row.email, !email.isEmpty {
+                updated.email = email
+            }
+            self.currentUser = updated
+            return
+        }
+
+        // 2. Fall back to auth user metadata if users table row was not found
+        if let token, !token.isEmpty {
+            do {
+                let authUser = try await client.getUser(authToken: token)
+                var updated = currentUser ?? SplitUserProfile(id: userId, email: authUser.email, fullName: authUser.fullName)
+                if let avatar = authUser.avatarUrl, !avatar.isEmpty {
+                    updated.avatarUrl = avatar
+                }
+                if let name = authUser.fullName, !name.isEmpty {
+                    updated.fullName = name
+                }
+                if let email = authUser.email, !email.isEmpty {
+                    updated.email = email
+                }
+                self.currentUser = updated
+            } catch {
+                // Non-fatal
+            }
+        }
     }
 
     public func signOut() {

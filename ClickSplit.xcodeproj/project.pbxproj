@@ -34,6 +34,7 @@
 		705EA15252F5922A7BAA4C29 /* GroupIconPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C6BCC74738A409B4B3ED82 /* GroupIconPicker.swift */; };
 		728F90C049573813A5BBC012 /* ExpenseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDE220619D5D6556E9F3989 /* ExpenseDetailView.swift */; };
 		79FF3DBCDB157E214CE3CA23 /* SplitModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE67C6C6B04772C40D33AB92 /* SplitModels.swift */; };
+		7A258D0EE3C666093358F5BC /* UserAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F049A8910BEC40A2C8B536B0 /* UserAvatarView.swift */; };
 		8528790287F8B3B2FE710A6B /* SupabaseClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01D9C8807133144F3C6951F /* SupabaseClientTests.swift */; };
 		8541F7DE4829F6825607D9ED /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28C53144A33212BD2365FACE /* Assets.xcassets */; };
 		859A8C688875B69784397B6E /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB538F4D7F8D0D02A4DA9DA7 /* DashboardViewModel.swift */; };
@@ -129,6 +130,7 @@
 		E61660DC22F4068586D9A199 /* SplitRepositories.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitRepositories.swift; sourceTree = "<group>"; };
 		ECB654E43AB0657505310B27 /* CSVExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExporter.swift; sourceTree = "<group>"; };
 		EE03450D6BADD89EE74FD3DC /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
+		F049A8910BEC40A2C8B536B0 /* UserAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAvatarView.swift; sourceTree = "<group>"; };
 		F9C9680A68BD436889DDF2CC /* SupabaseExpenseRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseExpenseRepository.swift; sourceTree = "<group>"; };
 		F9E5EAF1893C0F5A69FC4782 /* GroupSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSettingsSheet.swift; sourceTree = "<group>"; };
 		FD647D9A139A003065B99991 /* GroupJoinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupJoinView.swift; sourceTree = "<group>"; };
@@ -250,6 +252,7 @@
 				85D874860DAFB0B405737A31 /* SplitButton.swift */,
 				96619058CA7764E8AE614372 /* SplitCard.swift */,
 				5F21748468B7D4EDAC71CC85 /* SplitSegmentedControl.swift */,
+				F049A8910BEC40A2C8B536B0 /* UserAvatarView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -561,6 +564,7 @@
 				A45E7F3D0222AC7DD14DF34F /* SupabaseGroupRepository.swift in Sources */,
 				51060FD7DD7FD58B32E1260D /* SupabaseRealtimeClient.swift in Sources */,
 				6062724B6B23756AC99BF7DB /* SupabaseSettlementRepository.swift in Sources */,
+				7A258D0EE3C666093358F5BC /* UserAvatarView.swift in Sources */,
 				B757AA9D83AF5B96A31DC8BF /* UserProfileSheet.swift in Sources */,
 				D6D3920AB695BF0233D4605E /* ViewExtensions.swift in Sources */,
 			);

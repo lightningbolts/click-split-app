@@ -26,20 +26,14 @@ public struct UserProfileSheet: View {
             VStack(spacing: SplitSpacing.xl) {
                 // User Avatar and Name
                 VStack(spacing: SplitSpacing.md) {
-                    ZStack {
-                        Circle()
-                            .fill(SplitColors.greenDim)
-                            .overlay(
-                                Circle()
-                                    .stroke(SplitColors.ink, lineWidth: SplitSpacing.borderWidth)
-                            )
-                            .frame(width: 80, height: 80)
-                            .splitShadow(offset: SplitSpacing.shadowOffsetSmall)
-
-                        Text(initials)
-                            .font(.system(size: 28, weight: .black, design: .rounded))
-                            .foregroundColor(SplitColors.green)
-                    }
+                    UserAvatarView(
+                        avatarUrl: currentUser?.avatarUrl,
+                        name: currentUser?.fullName,
+                        size: 88,
+                        shape: .circle,
+                        showBorder: true,
+                        showShadow: true
+                    )
 
                     VStack(spacing: SplitSpacing.xxs) {
                         Text(currentUser?.displayName ?? "Click User")
@@ -165,6 +159,9 @@ public struct UserProfileSheet: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Are you sure you want to sign out of Click Split?")
+            }
+            .task {
+                await environment.sessionStore.refreshUserProfile()
             }
         }
     }
