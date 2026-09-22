@@ -63,7 +63,11 @@ public final class ReceiptScanService: Sendable {
 
     #if canImport(UIKit)
     /// Compresses a captured receipt image to optimal high-fidelity dimensions and quality for OCR.
-    public static func compressImage(_ image: UIImage, maxDimension: CGFloat = 2400) -> Data? {
+    public static func compressImage(
+        _ image: UIImage,
+        maxDimension: CGFloat = 2400,
+        compressionQuality: CGFloat = 0.85
+    ) -> Data? {
         let size = image.size
         var targetSize = size
 
@@ -84,7 +88,7 @@ public final class ReceiptScanService: Sendable {
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
 
-        return resized.jpegData(compressionQuality: 0.85)
+        return resized.jpegData(compressionQuality: compressionQuality)
     }
 
     /// Performs fast local on-device Vision OCR to extract raw text lines with layout-aware spatial sorting.
