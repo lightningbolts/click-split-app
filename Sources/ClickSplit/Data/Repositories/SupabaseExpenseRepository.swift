@@ -65,7 +65,11 @@ public final class SupabaseExpenseRepository: ExpenseRepositoryProtocol, @unchec
             let domainItems = draft.items.map {
                 SplitExpenseItem(expenseId: UUID(), label: $0.label, price: $0.price, assignedTo: $0.assignedTo)
             }
-            calculatedShares = try SplitCalculator.calculateByItemSplit(items: domainItems, allParticipantUserIds: participantIds)
+            calculatedShares = try SplitCalculator.calculateByItemSplit(
+                items: domainItems,
+                allParticipantUserIds: participantIds,
+                total: draft.total
+            )
         }
 
         struct RPCItem: Encodable {
