@@ -6,6 +6,7 @@ public protocol GroupRepositoryProtocol: Sendable {
     func fetchGroup(id: UUID) async throws -> SplitGroup?
     func fetchGroupMembers(groupId: UUID) async throws -> [SplitGroupMember]
     func createGroup(name: String, icon: String?, createdBy: UUID) async throws -> SplitGroup
+    func updateGroup(groupId: UUID, name: String, icon: String?) async throws -> SplitGroup
     func joinGroup(groupId: UUID, userId: UUID) async throws
     func addGroupMember(groupId: UUID, email: String) async throws
     func removeGroupMember(groupId: UUID, userId: UUID) async throws

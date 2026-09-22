@@ -93,6 +93,28 @@ public final class SupabaseGroupRepository: GroupRepositoryProtocol, @unchecked 
         return group
     }
 
+    public func updateGroup(groupId: UUID, name: String, icon: String?) async throws -> SplitGroup {
+        struct UpdateGroupPayload: Encodable {
+            let name: String
+            let icon: String?
+        }
+
+        let payload = UpdateGroupPayload(
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            icon: icon
+        )
+        let updated: [SplitGroup] = try await client.update(
+            table: "split_groups",
+            value: payload,
+            filters: [URLQueryItem(name: "id", value: "eq.\(groupId.uuidString)")],
+            authToken: token
+        )
+        guard let group = updated.first else {
+            throw SupabaseClient.SupabaseError.httpError(statusCode: 500, message: "Group update failed")
+        }
+        return group
+    }
+
     public func joinGroup(groupId: UUID, userId: UUID) async throws {
         struct InsertMemberPayload: Encodable {
             let group_id: UUID

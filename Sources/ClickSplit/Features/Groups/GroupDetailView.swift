@@ -30,7 +30,7 @@ public struct GroupDetailView: View {
             VStack(alignment: .leading, spacing: SplitSpacing.xl) {
                 // Group Header
                 HStack(spacing: SplitSpacing.md) {
-                    Text(group.icon ?? "👥")
+                    Text(viewModel.group.icon ?? "👥")
                         .font(.system(size: 32))
                         .padding(SplitSpacing.sm)
                         .background(SplitColors.paperDim)
@@ -40,7 +40,7 @@ public struct GroupDetailView: View {
                         )
 
                     VStack(alignment: .leading, spacing: SplitSpacing.xxs) {
-                        Text(group.name)
+                        Text(viewModel.group.name)
                             .font(SplitTypography.title)
                             .foregroundColor(SplitColors.ink)
 
@@ -169,8 +169,10 @@ public struct GroupDetailView: View {
                     }
 
                     ShareLink(
-                        item: URL(string: "https://clickplatforms.com/group/\(group.id)")!,
-                        subject: Text("Join \(group.name) on Click Split"),
+                        item: SupabaseConfig.defaultServerBaseURL
+                            .appendingPathComponent("group")
+                            .appendingPathComponent(viewModel.group.id.uuidString),
+                        subject: Text("Join \(viewModel.group.name) on Click Split"),
                         message: Text("Join our group on Click Split to share expenses!")
                     ) {
                         Label("Invite Members", systemImage: "person.badge.plus")
@@ -183,14 +185,14 @@ public struct GroupDetailView: View {
             }
         }
         .sheet(isPresented: $showAddExpenseSheet) {
-            AddExpenseView(group: group, members: viewModel.members) {
+            AddExpenseView(group: viewModel.group, members: viewModel.members) {
                 Task {
                     await viewModel.loadGroupData(environment: environment)
                 }
             }
         }
         .sheet(isPresented: $showSettleUpSheet) {
-            SettleUpView(group: group, members: viewModel.members) {
+            SettleUpView(group: viewModel.group, members: viewModel.members) {
                 Task {
                     await viewModel.loadGroupData(environment: environment)
                 }
@@ -199,7 +201,7 @@ public struct GroupDetailView: View {
         .sheet(item: $selectedExpense) { expense in
             ExpenseDetailView(
                 expense: expense,
-                group: group,
+                group: viewModel.group,
                 members: viewModel.members,
                 initialShares: viewModel.memberShares[expense.id] ?? [],
                 onExpenseUpdated: {
@@ -216,7 +218,7 @@ public struct GroupDetailView: View {
         }
         .sheet(isPresented: $showSettingsSheet) {
             GroupSettingsSheet(
-                group: group,
+                group: viewModel.group,
                 members: viewModel.members,
                 expenses: viewModel.expenses,
                 onGroupModified: {

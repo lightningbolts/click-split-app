@@ -89,7 +89,9 @@ public struct GroupSettingsSheet: View {
                             Spacer()
 
                             ShareLink(
-                                item: URL(string: "https://clickplatforms.com/group/\(group.id)")!,
+                                item: SupabaseConfig.defaultServerBaseURL
+                                    .appendingPathComponent("group")
+                                    .appendingPathComponent(group.id.uuidString),
                                 subject: Text("Join \(group.name) on Click Split"),
                                 message: Text("Join our group on Click Split to share expenses!")
                             ) {
@@ -255,11 +257,12 @@ public struct GroupSettingsSheet: View {
             .splitInlineTitleDisplayMode()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
+                    Button(isLoading ? "Saving…" : "Done") {
+                        saveAndDismiss()
                     }
                     .font(SplitTypography.buttonSmall)
                     .foregroundColor(SplitColors.ink)
+                    .disabled(isLoading || groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .confirmationDialog(
@@ -304,6 +307,38 @@ public struct GroupSettingsSheet: View {
                 }
             } message: {
                 Text("The member must have a settled balance before they can be removed. Their expense history will remain in the group.")
+            }
+        }
+    }
+
+    private func saveAndDismiss() {
+        let trimmedName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty, !isLoading else { return }
+
+        let currentIcon = group.icon ?? "👥"
+        guard trimmedName != group.name || selectedIcon != currentIcon else {
+            dismiss()
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        Task { @MainActor in
+            do {
+                _ = try await environment.groupRepository.updateGroup(
+                    groupId: group.id,
+                    name: trimmedName,
+                    icon: selectedIcon
+                )
+                isLoading = false
+                SplitHaptics.notify(.success)
+                onGroupModified()
+                dismiss()
+            } catch {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                SplitHaptics.notify(.error)
             }
         }
     }

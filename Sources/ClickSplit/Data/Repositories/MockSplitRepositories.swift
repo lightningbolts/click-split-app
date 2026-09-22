@@ -73,6 +73,15 @@ public actor MockGroupRepository: GroupRepositoryProtocol {
         return newGroup
     }
 
+    public func updateGroup(groupId: UUID, name: String, icon: String?) async throws -> SplitGroup {
+        guard let index = groups.firstIndex(where: { $0.id == groupId }) else {
+            throw NSError(domain: "ClickSplit.MockGroupRepository", code: 404)
+        }
+        groups[index].name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        groups[index].icon = icon
+        return groups[index]
+    }
+
     public func joinGroup(groupId: UUID, userId: UUID) async throws {
         guard groups.contains(where: { $0.id == groupId }) else { return }
         var list = members[groupId] ?? []
