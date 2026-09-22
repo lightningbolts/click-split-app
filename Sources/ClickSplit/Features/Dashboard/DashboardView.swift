@@ -13,6 +13,30 @@ public struct DashboardView: View {
     @State private var scanGroup: SplitGroup?
     @State private var showScannerSheet = false
     @State private var scanMembers: [SplitGroupMember] = []
+    @State private var pendingScannedExpense: ScannedExpenseContext?
+
+    public struct ScannedExpenseContext: Identifiable {
+        public let id = UUID()
+        public let group: SplitGroup
+        public let members: [SplitGroupMember]
+        public let items: [ExpenseItemDraft]
+        public let total: Decimal
+        public let merchant: String?
+
+        public init(
+            group: SplitGroup,
+            members: [SplitGroupMember],
+            items: [ExpenseItemDraft],
+            total: Decimal,
+            merchant: String?
+        ) {
+            self.group = group
+            self.members = members
+            self.items = items
+            self.total = total
+            self.merchant = merchant
+        }
+    }
 
     public init() {}
 
@@ -142,6 +166,27 @@ public struct DashboardView: View {
             }
             .sheet(isPresented: $showScannerSheet) {
                 ReceiptScannerSheet(members: scanMembers) { items, total, merchant in
+                    if let group = scanGroup {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            self.pendingScannedExpense = ScannedExpenseContext(
+                                group: group,
+                                members: self.scanMembers,
+                                items: items,
+                                total: total,
+                                merchant: merchant
+                            )
+                        }
+                    }
+                }
+            }
+            .sheet(item: $pendingScannedExpense) { context in
+                AddExpenseView(
+                    group: context.group,
+                    members: context.members,
+                    prefilledItems: context.items,
+                    prefilledTotal: context.total,
+                    prefilledDescription: context.merchant
+                ) {
                     Task {
                         await viewModel.loadData(environment: environment)
                     }

@@ -22,6 +22,9 @@ public struct AddExpenseView: View {
     public init(
         group: SplitGroup,
         members: [SplitGroupMember],
+        prefilledItems: [ExpenseItemDraft]? = nil,
+        prefilledTotal: Decimal? = nil,
+        prefilledDescription: String? = nil,
         onExpenseCreated: @escaping () -> Void
     ) {
         self.group = group
@@ -29,6 +32,21 @@ public struct AddExpenseView: View {
         self.onExpenseCreated = onExpenseCreated
         let defaultPayer = members.first?.userId ?? UUID()
         self._selectedPayerId = State(initialValue: defaultPayer)
+
+        if let items = prefilledItems, !items.isEmpty {
+            self._scannedItems = State(initialValue: items)
+            self._splitMethod = State(initialValue: .byItem)
+            let total = prefilledTotal ?? items.reduce(Decimal.zero) { $0 + $1.price }
+            self._amountString = State(initialValue: "\(total)")
+            self._descriptionText = State(initialValue: prefilledDescription ?? "Scanned Receipt")
+        } else {
+            if let total = prefilledTotal, total > 0 {
+                self._amountString = State(initialValue: "\(total)")
+            }
+            if let desc = prefilledDescription, !desc.isEmpty {
+                self._descriptionText = State(initialValue: desc)
+            }
+        }
     }
 
     private var totalDecimal: Decimal {
@@ -155,6 +173,8 @@ public struct AddExpenseView: View {
                     // Custom % Allocation Editor (Section 12)
                     if splitMethod == .customPercent {
                         customPercentEditor
+                    } else if splitMethod == .byItem && !scannedItems.isEmpty {
+                        byItemBreakdownSection
                     }
 
                     if let errorMessage {
@@ -303,6 +323,60 @@ public struct AddExpenseView: View {
             borderWidth: 1.5,
             shadowOffset: SplitSpacing.shadowOffsetSmall
         )
+    }
+
+    private var byItemBreakdownSection: some View {
+        VStack(alignment: .leading, spacing: SplitSpacing.sm) {
+            HStack {
+                Text("ITEMIZED ALLOCATION (\(scannedItems.count))")
+                    .font(SplitTypography.badge)
+                    .foregroundColor(SplitColors.inkSoft)
+                    .tracking(1)
+
+                Spacer()
+
+                Button("Edit Receipt") {
+                    showReceiptScanner = true
+                }
+                .font(SplitTypography.caption)
+                .fontWeight(.bold)
+                .foregroundColor(SplitColors.green)
+            }
+
+            VStack(spacing: SplitSpacing.xs) {
+                ForEach(scannedItems) { item in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.label)
+                                .font(SplitTypography.buttonSmall)
+                                .foregroundColor(SplitColors.ink)
+                            Text(assigneeName(for: item.assignedTo))
+                                .font(SplitTypography.caption)
+                                .foregroundColor(item.assignedTo != nil ? SplitColors.green : SplitColors.inkSoft)
+                        }
+
+                        Spacer()
+
+                        Text("$\(item.price.formatted(.number.precision(.fractionLength(2))))")
+                            .font(SplitTypography.buttonSmall)
+                            .foregroundColor(SplitColors.ink)
+                            .splitMonospacedDigits()
+                    }
+                    .padding(.vertical, 2)
+                    if item.id != scannedItems.last?.id {
+                        Divider()
+                            .background(SplitColors.ink.opacity(0.08))
+                    }
+                }
+            }
+            .padding(SplitSpacing.md)
+            .splitCardStyle(surfaceColor: SplitColors.paperDim)
+        }
+    }
+
+    private func assigneeName(for userId: UUID?) -> String {
+        guard let userId else { return "Everyone (Split evenly)" }
+        return members.first { $0.userId == userId }?.profile?.displayName ?? "Member"
     }
 
     private func initializeCustomPercentages() {

@@ -22,17 +22,29 @@ public struct ReceiptExtractionResult: Codable, Sendable {
     public let merchant: String?
     public let items: [ScannedItem]
     public let detectedTotal: Decimal?
+    public let tax: Decimal?
+    public let tip: Decimal?
 
     enum CodingKeys: String, CodingKey {
         case merchant
         case items
         case detectedTotal = "detected_total"
+        case tax
+        case tip
     }
 
-    public init(merchant: String? = nil, items: [ScannedItem], detectedTotal: Decimal?) {
+    public init(
+        merchant: String? = nil,
+        items: [ScannedItem],
+        detectedTotal: Decimal?,
+        tax: Decimal? = nil,
+        tip: Decimal? = nil
+    ) {
         self.merchant = merchant
         self.items = items
         self.detectedTotal = detectedTotal
+        self.tax = tax
+        self.tip = tip
     }
 }
 
@@ -293,7 +305,13 @@ public final class ReceiptScanService: Sendable {
             .init(label: "Craft IPA", price: Decimal(string: "9.50")!),
             .init(label: "Sparkling Water", price: Decimal(string: "4.00")!)
         ]
-        return ReceiptExtractionResult(items: items, detectedTotal: Decimal(string: "38.00")!)
+        return ReceiptExtractionResult(
+            merchant: "Sample Burger Joint",
+            items: items,
+            detectedTotal: Decimal(string: "43.40")!,
+            tax: Decimal(string: "3.40")!,
+            tip: Decimal(string: "6.00")!
+        )
     }
 }
 

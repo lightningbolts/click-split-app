@@ -16,6 +16,8 @@ public struct ReceiptScannerSheet: View {
     @State private var isProcessing = false
     @State private var recognizedItems: [ExpenseItemDraft]?
     @State private var recognizedMerchant: String?
+    @State private var recognizedTax: Decimal = 0
+    @State private var recognizedTip: Decimal = 0
     @State private var errorMessage: String?
     @State private var showCamera = false
 
@@ -36,6 +38,8 @@ public struct ReceiptScannerSheet: View {
                     ReceiptReviewView(
                         members: members,
                         initialItems: items,
+                        initialTax: recognizedTax,
+                        initialTip: recognizedTip,
                         onApply: { configuredItems, total in
                             onItemsReady(configuredItems, total, recognizedMerchant)
                             dismiss()
@@ -218,6 +222,8 @@ public struct ReceiptScannerSheet: View {
                 SplitHaptics.notify(.success)
                 self.recognizedMerchant = result.merchant
                 self.recognizedItems = drafts
+                self.recognizedTax = result.tax ?? 0
+                self.recognizedTip = result.tip ?? 0
             } catch {
                 isProcessing = false
                 self.errorMessage = error.localizedDescription
@@ -229,9 +235,11 @@ public struct ReceiptScannerSheet: View {
 
     private func simulateDemoReceipt() {
         let mockResult = ReceiptScanService.mockExtractionFallback()
-        self.recognizedMerchant = "Sample Burger Joint"
+        self.recognizedMerchant = mockResult.merchant
         self.recognizedItems = mockResult.items.map {
             ExpenseItemDraft(label: $0.label, price: $0.price, assignedTo: nil)
         }
+        self.recognizedTax = mockResult.tax ?? 0
+        self.recognizedTip = mockResult.tip ?? 0
     }
 }
