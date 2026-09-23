@@ -84,4 +84,22 @@ final class PaymentRailAndCSVTests: XCTestCase {
         )
         XCTAssertNil(zelleURL)
     }
+    func testPaymentRailWebFallbackPreservesRecipientAndAmount() {
+        let venmoFallback = PaymentRailLauncher.generateWebFallbackURL(
+            method: .venmo,
+            recipientHandle: "@alice",
+            amount: Decimal(string: "42.50")!,
+            note: "Split lunch"
+        )
+        XCTAssertTrue(venmoFallback?.absoluteString.contains("recipients=alice") == true)
+        XCTAssertTrue(venmoFallback?.absoluteString.contains("amount=42.5") == true)
+
+        let paypalFallback = PaymentRailLauncher.generateWebFallbackURL(
+            method: .paypal,
+            recipientHandle: "charlie",
+            amount: Decimal(string: "25.00")!
+        )
+        XCTAssertEqual(paypalFallback?.absoluteString, "https://paypal.me/charlie/25")
+    }
+
 }
